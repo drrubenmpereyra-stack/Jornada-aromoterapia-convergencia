@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 // Credenciales oficiales de su proyecto Firebase
 const firebaseConfig = {
@@ -129,6 +129,7 @@ function configurarEventosLogin() {
                 estadoApp.seccionActiva = "Jornadas";
             }
             
+            // Precarga inicial única
             await cargarDatosDesdeDB();
 
             render();
@@ -199,20 +200,23 @@ async function cargarDatosDesdeDB() {
     try {
         if (!db) return;
         
-        // Jornadas
-        const snapJornadas = await getDocs(collection(db, "jornadas"));
+        // Ejecutamos todas las peticiones a la nube en paralelo para máxima velocidad
+        const [snapJornadas, snapMateriales, snapParticipantes, snapAsistencia, snapPagos] = await Promise.all([
+            getDocs(collection(db, "jornadas")),
+            getDocs(collection(db, "materiales")),
+            getDocs(collection(db, "usuarios")),
+            getDocs(collection(db, "asistencia")),
+            getDocs(collection(db, "pagos"))
+        ]);
+
         let listaJ = [];
         snapJornadas.forEach((doc) => { listaJ.push({ id: doc.id, ...doc.data() }); });
         estadoApp.jornadasLista = listaJ;
 
-        // Materiales
-        const snapMateriales = await getDocs(collection(db, "materiales"));
         let listaM = [];
         snapMateriales.forEach((doc) => { listaM.push({ id: doc.id, ...doc.data() }); });
         estadoApp.materialesLista = listaM;
 
-        // Participantes
-        const snapParticipantes = await getDocs(collection(db, "usuarios"));
         let listaP = [];
         snapParticipantes.forEach((doc) => {
             const data = doc.data();
@@ -222,27 +226,22 @@ async function cargarDatosDesdeDB() {
         });
         estadoApp.participantesLista = listaP;
 
-        // Asistencia
-        const snapAsistencia = await getDocs(collection(db, "asistencia"));
         let listaA = [];
         snapAsistencia.forEach((doc) => { listaA.push({ id: doc.id, ...doc.data() }); });
         estadoApp.asistenciaLista = listaA;
 
-        // Pagos
-        const snapPagos = await getDocs(collection(db, "pagos"));
         let listaPag = [];
         snapPagos.forEach((doc) => { listaPag.push({ id: doc.id, ...doc.data() }); });
         estadoApp.pagosLista = listaPag;
 
     } catch (e) {
-        console.error("Error al obtener datos de Firestore:", e);
+        console.error("Error al obtener datos en paralelo:", e);
     }
 }
 
 function obtenerContenidoSeccion() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
 
-    // 1. GESTIÓN DE JORNADAS (Admin)
     if (esAdmin && estadoApp.seccionActiva === "Jornadas") {
         if (estadoApp.modoFormularioJornada) {
             return `
@@ -251,7 +250,7 @@ function obtenerContenidoSeccion() {
                     <form id="formCargarJornada" style="display: flex; flex-direction: column; gap: 1rem;">
                         <div class="form-group" style="text-align: left;">
                             <label>Nombre de la Jornada</label>
-                            <input type="text" id="jNombre" required placeholder="Ej: Jornada 1: Bases..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="jNombre" required placeholder="Ej: Jornada 1..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Imagen de la Jornada (Archivo en repo)</label>
@@ -311,7 +310,6 @@ function obtenerContenidoSeccion() {
         }
     } 
 
-    // 2. GESTIÓN DE MATERIALES (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Materiales") {
         if (estadoApp.modoFormularioMaterial) {
             return `
@@ -368,7 +366,6 @@ function obtenerContenidoSeccion() {
         }
     }
 
-    // 3. GESTIÓN DE PARTICIPANTES (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Participantes") {
         if (estadoApp.modoFormularioParticipante) {
             return `
@@ -443,7 +440,6 @@ function obtenerContenidoSeccion() {
         }
     }
 
-    // 4. GESTIÓN DE ASISTENCIA (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Asistencia") {
         let optionsSelect = `<option value="">Seleccione un participante</option>`;
         estadoApp.participantesLista.forEach(p => {
@@ -519,7 +515,6 @@ function obtenerContenidoSeccion() {
         return htmlAsistenciaAdmin;
     }
 
-    // 5. GESTIÓN DE PAGOS (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Pagos") {
         let optionsSelectP = `<option value="">Seleccione un participante</option>`;
         estadoApp.participantesLista.forEach(p => {
@@ -610,7 +605,6 @@ function obtenerContenidoSeccion() {
         return htmlPagosAdmin;
     }
 
-    // 6. VISTA PARTICIPANTE: "Mis jornadas"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
         let htmlMisJ = `
             <div style="margin-bottom: 2rem;">
@@ -640,7 +634,6 @@ function obtenerContenidoSeccion() {
         return htmlMisJ;
     } 
 
-    // 7. VISTA PARTICIPANTE: "Mis materiales"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis materiales") {
         let htmlMisM = `
             <div style="margin-bottom: 2rem;">
@@ -668,7 +661,6 @@ function obtenerContenidoSeccion() {
         return htmlMisM;
     }
 
-    // 8. VISTA PARTICIPANTE: "Mi asistencia"
     else if (!esAdmin && estadoApp.seccionActiva === "Mi asistencia") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misAsistencias = estadoApp.asistenciaLista.filter(a => a.participante === nombreParticipante);
@@ -711,7 +703,6 @@ function obtenerContenidoSeccion() {
         return htmlMiAsis;
     }
 
-    // 9. VISTA PARTICIPANTE: "Mis pagos"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis pagos") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misPagos = estadoApp.pagosLista.filter(p => p.participante === nombreParticipante);
@@ -757,7 +748,6 @@ function obtenerContenidoSeccion() {
         return htmlMiPago;
     }
 
-    // Vistas por defecto
     else {
         return `
             <div class="welcome-box">
@@ -824,7 +814,7 @@ function renderDashboard() {
 function configurarEventosDashboard() {
     const botones = document.querySelectorAll(".nav-menu .btn-custom");
     botones.forEach(btn => {
-        btn.addEventListener("click", async (e) => {
+        btn.addEventListener("click", (e) => {
             const seccion = e.target.getAttribute("data-seccion");
             if (seccion === "Salir") {
                 estadoApp.usuarioActual = null;
@@ -839,8 +829,7 @@ function configurarEventosDashboard() {
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.modoFormularioMaterial = false;
                 estadoApp.modoFormularioParticipante = false;
-                
-                await cargarDatosDesdeDB();
+                // Cambio inmediato utilizando la caché local en memoria (¡velocidad instantánea!)
                 render();
             }
         });
@@ -920,7 +909,6 @@ function configurarEventosDashboard() {
         });
     }
 
-    // Botones de eliminar y restringir participante
     document.querySelectorAll(".btn-eliminar-participante").forEach(btn => {
         btn.addEventListener("click", async (e) => {
             const idDoc = e.target.getAttribute("data-id");
