@@ -12,11 +12,16 @@ const firebaseConfig = {
     appId: "1:164268096827:web:a9ab4a1bdeb7a3ea9b4b1e"
 };
 
-// Inicializar Firebase y Firestore
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Inicialización segura de Firebase
+let db = null;
+try {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+} catch (e) {
+    console.warn("Firebase no se pudo inicializar, operando en modo local seguro.", e);
+}
 
-// Base de datos de respaldo local (por seguridad si la red falla o está cargando)
+// Base de datos de respaldo local garantizada
 const usuariosRespaldo = [
     { user: "DRPEREYRA", pass: "235689", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" },
     { user: "P1", pass: "XX", role: "participant", nombre: "Participante 1" },
@@ -32,6 +37,7 @@ let estadoApp = {
 
 function render() {
     const appContainer = document.getElementById("app");
+    if (!appContainer) return;
     appContainer.innerHTML = "";
 
     if (estadoApp.pantalla === "login") {
@@ -70,34 +76,39 @@ function renderLogin() {
 }
 
 function configurarEventosLogin() {
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    const form = document.getElementById("loginForm");
+    if (!form) return;
+
+    form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const uInput = document.getElementById("usuario").value.trim().toUpperCase();
         const pInput = document.getElementById("password").value.trim();
         const errorDiv = document.getElementById("errorMsg");
         
-        errorDiv.innerText = "Verificando en base de datos...";
+        errorDiv.innerText = "Verificando credenciales...";
 
         let usuarioEncontrado = null;
 
-        try {
-            // Consultar la colección 'usuarios' en Cloud Firestore
-            const q = query(collection(db, "usuarios"), where("user", "==", uInput));
-            const querySnapshot = await getDocs(q);
+        // Intentar buscar en Firestore si está disponible
+        if (db) {
+            try {
+                const q = query(collection(db, "usuarios"), where("user", "==", uInput));
+                const querySnapshot = await getDocs(q);
 
-            if (!querySnapshot.empty) {
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    if (data.pass === pInput) {
-                        usuarioEncontrado = data;
-                    }
-                });
+                if (!querySnapshot.empty) {
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if (data.pass === pInput) {
+                            usuarioEncontrado = data;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn("Firestore inaccesible, usando base local.", error);
             }
-        } catch (error) {
-            console.warn("Aviso de red Firestore, recurriendo al respaldo local:", error);
         }
 
-        // Si no se encuentra en Firestore, usa el respaldo local
+        // Si Firestore no devolvió nada (o aún no tiene la colección creada), busca en el respaldo local
         if (!usuarioEncontrado) {
             usuarioEncontrado = usuariosRespaldo.find(u => u.user === uInput && u.pass === pInput);
         }
@@ -158,9 +169,14 @@ function configurarEventosIntro() {
         render();
     };
 
-    document.getElementById("skipBtn").addEventListener("click", irAlDashboard);
+    const skipBtn = document.getElementById("skipBtn");
+    if (skipBtn) skipBtn.addEventListener("click", irAlDashboard);
+
     const video = document.getElementById("introVideo");
-    video.addEventListener("ended", irAlDashboard);
+    if (video) {
+        video.addEventListener("ended", irAlDashboard);
+        video.play().catch(err => console.log("Autoplay bloqueado por navegador:", err));
+    }
 }
 
 function renderDashboard() {
@@ -210,7 +226,7 @@ function renderDashboard() {
             <main class="dashboard-content">
                 <div class="welcome-box">
                     <h2>Sección Actual: ${estadoApp.seccionActiva}</h2>
-                    <p>Panel conectado a Cloud Firestore. Gestión oficial del Dr. y Mgter Rubén M. Pereyra.</p>
+                    <p>Panel de control oficial. Dirigido por el Dr. y Mgter Rubén M. Pereyra.</p>
                 </div>
             </main>
         </div>
