@@ -1,198 +1,263 @@
-const usuarios = [
-    { user: "DRPEREYRA", pass: "235689", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" },
-    { user: "P1", pass: "XX", role: "participant", nombre: "Participante 1" },
-    { user: "P2", pass: "YY", role: "participant", nombre: "Participante 2" },
-    { user: "P3", pass: "ZZ", role: "participant", nombre: "Participante 3" }
-];
-
-let estadoApp = {
-    pantalla: "login", // 'login', 'intro', 'dashboard'
-    usuarioActual: null,
-    seccionActiva: "Jornadas"
-};
-
-function render() {
-    const appContainer = document.getElementById("app");
-    appContainer.innerHTML = "";
-
-    if (estadoApp.pantalla === "login") {
-        appContainer.innerHTML = renderLogin();
-        configurarEventosLogin();
-    } else if (estadoApp.pantalla === "intro") {
-        appContainer.innerHTML = renderIntro();
-        configurarEventosIntro();
-    } else if (estadoApp.pantalla === "dashboard") {
-        appContainer.innerHTML = renderDashboard();
-        configurarEventosDashboard();
-    }
+/* --- CONFIGURACIÓN GENERAL --- */
+:root {
+    --bg-main: #12100e;
+    --lavender: #b5838d;
+    --blue-border: #1d3557;
+    --yellow-glow: #ffb703;
+    --text-dark: #2b2b2b;
+    --white: #ffffff;
 }
 
-function renderLogin() {
-    return `
-        <div class="login-screen">
-            <div class="login-card">
-                <img src="Logotipo.jpg" alt="Logotipo" class="login-logo">
-                <h2>Seminario de Aromaterapia</h2>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="usuario">Usuario</label>
-                        <input type="text" id="usuario" required placeholder="Ingrese su usuario">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Contraseña</label>
-                        <input type="password" id="password" required placeholder="Ingrese su contraseña">
-                    </div>
-                    <button type="submit" class="btn-custom btn-submit">Ingresar</button>
-                    <div id="errorMsg" class="error-msg"></div>
-                </form>
-            </div>
-        </div>
-    `;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-function configurarEventosLogin() {
-    document.getElementById("loginForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const uInput = document.getElementById("usuario").value.trim();
-        const pInput = document.getElementById("password").value.trim();
-
-        const encontrado = usuarios.find(u => u.user === uInput && u.pass === pInput);
-
-        if (encontrado) {
-            estadoApp.usuarioActual = encontrado;
-            estadoApp.pantalla = "intro";
-            render();
-            reproducirAudioIntro();
-        } else {
-            document.getElementById("errorMsg").innerText = "Usuario o contraseña incorrectos.";
-        }
-    });
+body {
+    background-color: var(--bg-main);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-function renderIntro() {
-    return `
-        <div class="intro-screen">
-            <div class="intro-content">
-                <img src="Logotipo.jpg" alt="Logotipo" class="intro-logo">
-                <h1 class="animated-title">Bienvenidos Seminario Aromaterapia Clínica de la Convergencia 2026</h1>
-                <div class="video-wrapper">
-                    <video id="introVideo" autoplay muted playsinline>
-                        <source src="https://github.com/drrubenmpereyra-stack/intro-aromoterapia/raw/refs/heads/main/Videointro.mp4" type="video/mp4">
-                        Tu navegador no soporta videos.
-                    </video>
-                </div>
-                <button id="skipBtn" class="btn-custom">Entrar al Aula Virtual</button>
-            </div>
-        </div>
-    `;
+/* --- PANTALLA DE LOGIN (CENTTRADO ABSOLUTO) --- */
+.login-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle, #2b2b2b 0%, #12100e 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
 }
 
-function reproducirAudioIntro() {
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const texto = "Bienvenidos Seminario Aromaterapia Clínica de la Convergencia 2026";
-        const mensaje = new SpeechSynthesisUtterance(texto);
-        mensaje.lang = 'es-ES';
-        mensaje.rate = 0.90;
-        
-        // Buscar voz académica femenina si está disponible en el navegador
-        const voces = window.speechSynthesis.getVoices();
-        const vozFemenina = voces.find(v => v.lang.startsWith('es') && (v.name.includes('Female') || v.name.includes('Helena') || v.name.includes('Laura') || v.name.includes('Sofia') || v.name.includes('Monica') || v.name.includes('Paulina')));
-        if (vozFemenina) {
-            mensaje.voice = vozFemenina;
-        }
-
-        window.speechSynthesis.speak(mensaje);
-    }
+.login-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    border: 3px solid var(--blue-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-function configurarEventosIntro() {
-    const irAlDashboard = () => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-        }
-        estadoApp.pantalla = "dashboard";
-        render();
-    };
-
-    document.getElementById("skipBtn").addEventListener("click", irAlDashboard);
-    const video = document.getElementById("introVideo");
-    video.addEventListener("ended", irAlDashboard);
+.login-logo {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    border: 3px solid var(--lavender);
 }
 
-function renderDashboard() {
-    const esAdmin = estadoApp.usuarioActual.role === "admin";
-    
-    // Botones para todas las categorías
-    let botonesHTML = `
-        <button class="btn-custom" data-seccion="Jornadas">Jornadas</button>
-        <button class="btn-custom" data-seccion="Materiales">Materiales</button>
-    `;
-
-    // Botones exclusivos de Administrador
-    if (esAdmin) {
-        botonesHTML += `
-            <button class="btn-custom" data-seccion="Asistencia">Asistencia</button>
-            <button class="btn-custom" data-seccion="Pagos">Pagos</button>
-            <button class="btn-custom" data-seccion="Calificaciones">Calificaciones</button>
-            <button class="btn-custom" data-seccion="Diplomas">Diplomas</button>
-        `;
-    } else {
-        // Botones exclusivos de Participantes
-        botonesHTML += `
-            <button class="btn-custom" data-seccion="Mi asistencia">Mi asistencia</button>
-            <button class="btn-custom" data-seccion="Mis pagos">Mis pagos</button>
-            <button class="btn-custom" data-seccion="Mis calificaciones">Mis calificaciones</button>
-            <button class="btn-custom" data-seccion="Mi diploma">Mi diploma</button>
-            <button class="btn-custom" data-seccion="Test de autoevaluación">Test de autoevaluación</button>
-            <button class="btn-custom" data-seccion="Talleres">Talleres</button>
-        `;
-    }
-
-    // Botón Salir común al final (alineado a la derecha)
-    botonesHTML += `<button class="btn-custom" data-seccion="Salir" style="background-color: #d90429 !important; border-color: #8d0801 !important; margin-left: auto;">Salir</button>`;
-
-    return `
-        <div class="dashboard-container">
-            <header class="dashboard-header">
-                <div class="header-brand">
-                    <img src="Logotipo.jpg" alt="Logo" class="header-logo">
-                    <h1>Seminario de Aromaterapia en Psicoterapia Focalizada y Neurociencias</h1>
-                </div>
-                <div class="user-info">
-                    👤 ${estadoApp.usuarioActual.nombre}
-                </div>
-            </header>
-
-            <nav class="nav-menu">
-                ${botonesHTML}
-            </nav>
-
-            <main class="dashboard-content">
-                <div class="welcome-box">
-                    <h2>Sección Actual: ${estadoApp.seccionActiva}</h2>
-                    <p>Panel de gestión del seminario dirigido por el Dr. y Mgter Rubén M. Pereyra.</p>
-                </div>
-            </main>
-        </div>
-    `;
+.login-card h2 {
+    color: var(--blue-border);
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
 }
 
-function configurarEventosDashboard() {
-    const botones = document.querySelectorAll(".nav-menu .btn-custom");
-    botones.forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            const seccion = e.target.getAttribute("data-seccion");
-            if (seccion === "Salir") {
-                estadoApp.usuarioActual = null;
-                estadoApp.pantalla = "login";
-                render();
-            } else {
-                estadoApp.seccionActiva = seccion;
-                render();
-            }
-        });
-    });
+.form-group {
+    width: 100%;
+    margin-bottom: 1.2rem;
+    text-align: left;
 }
 
-window.addEventListener("DOMContentLoaded", render);
+.form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: var(--blue-border);
+    box-shadow: 0 0 6px rgba(29, 53, 87, 0.5);
+}
+
+.error-msg {
+    color: #e63946;
+    font-size: 0.85rem;
+    margin-top: 0.8rem;
+}
+
+/* --- ESTILO DE BOTONES: Lavanda, Borde Azul, Glow Amarillo --- */
+.btn-custom {
+    background-color: var(--lavender) !important;
+    color: var(--white) !important;
+    border: 2px solid var(--blue-border) !important;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.25s ease-in-out;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.btn-custom:hover {
+    background-color: var(--lavender) !important;
+    color: var(--blue-border) !important;
+    border-color: var(--yellow-glow) !important;
+    box-shadow: 0 0 18px var(--yellow-glow), inset 0 0 6px var(--yellow-glow) !important;
+}
+
+.btn-submit {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.75rem;
+}
+
+/* --- VIDEO INTRO (CENTRADO Y REDUCIDO) --- */
+.intro-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.intro-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 550px;
+    width: 90%;
+    padding: 1rem;
+}
+
+.intro-logo {
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 0.8rem;
+    border: 2px solid var(--lavender);
+}
+
+.animated-title {
+    color: var(--lavender);
+    font-size: 1.35rem;
+    margin-bottom: 1.2rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+    animation: pulseTitle 1.5s ease-in-out infinite alternate;
+}
+
+.video-wrapper {
+    width: 100%;
+    max-width: 480px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 3px solid var(--blue-border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    background: #000;
+    margin-bottom: 1.5rem;
+}
+
+.video-wrapper video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+@keyframes pulseTitle {
+    from { opacity: 0.75; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1.02); }
+}
+
+/* --- DASHBOARD PRINCIPAL Y MENÚ DE BOTONES --- */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+.dashboard-header {
+    background: var(--white);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--blue-border);
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-logo {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--lavender);
+}
+
+.header-brand h1 {
+    font-size: 1.1rem;
+    color: var(--blue-border);
+}
+
+.user-info {
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.nav-menu {
+    background-color: #2b2d42;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.8rem 2rem;
+    align-items: center;
+    border-bottom: 2px solid var(--lavender);
+}
+
+.dashboard-content {
+    flex: 1;
+    padding: 2.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.welcome-box {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border-left: 5px solid var(--lavender);
+}
+
+.welcome-box h2 {
+    color: var(--blue-border);
+    margin-bottom: 0.5rem;
+}
