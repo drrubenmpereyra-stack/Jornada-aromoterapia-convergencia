@@ -1,4 +1,23 @@
-const usuarios = [
+// Importar los SDKs necesarios de Firebase vía CDN modular oficial
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+// CREDENCIALES OFICIALES DE SU PROYECTO FIREBASE
+const firebaseConfig = {
+    apiKey: "AIzaSyAVFOWLQtNdaa_pDW8qvFjajmYY08jn9hY",
+    authDomain: "aromoterapia-convergenci.firebaseapp.com",
+    projectId: "aromoterapia-convergenci",
+    storageBucket: "aromoterapia-convergenci.firebasestorage.app",
+    messagingSenderId: "164268096827",
+    appId: "1:164268096827:web:a9ab4a1bdeb7a3ea9b4b1e"
+};
+
+// Inicializar Firebase y Firestore
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Base de datos de respaldo local (por seguridad si la red falla o está cargando)
+const usuariosRespaldo = [
     { user: "DRPEREYRA", pass: "235689", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" },
     { user: "P1", pass: "XX", role: "participant", nombre: "Participante 1" },
     { user: "P2", pass: "YY", role: "participant", nombre: "Participante 2" },
@@ -51,20 +70,45 @@ function renderLogin() {
 }
 
 function configurarEventosLogin() {
-    document.getElementById("loginForm").addEventListener("submit", (e) => {
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
         e.preventDefault();
-        const uInput = document.getElementById("usuario").value.trim();
+        const uInput = document.getElementById("usuario").value.trim().toUpperCase();
         const pInput = document.getElementById("password").value.trim();
+        const errorDiv = document.getElementById("errorMsg");
+        
+        errorDiv.innerText = "Verificando en base de datos...";
 
-        const encontrado = usuarios.find(u => u.user === uInput && u.pass === pInput);
+        let usuarioEncontrado = null;
 
-        if (encontrado) {
-            estadoApp.usuarioActual = encontrado;
+        try {
+            // Consultar la colección 'usuarios' en Cloud Firestore
+            const q = query(collection(db, "usuarios"), where("user", "==", uInput));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.pass === pInput) {
+                        usuarioEncontrado = data;
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn("Aviso de red Firestore, recurriendo al respaldo local:", error);
+        }
+
+        // Si no se encuentra en Firestore, usa el respaldo local
+        if (!usuarioEncontrado) {
+            usuarioEncontrado = usuariosRespaldo.find(u => u.user === uInput && u.pass === pInput);
+        }
+
+        if (usuarioEncontrado) {
+            estadoApp.usuarioActual = usuarioEncontrado;
             estadoApp.pantalla = "intro";
             render();
             reproducirAudioIntro();
         } else {
-            document.getElementById("errorMsg").innerText = "Usuario o contraseña incorrectos.";
+            errorDiv.innerText = "Usuario o contraseña incorrectos.";
         }
     });
 }
@@ -138,9 +182,9 @@ function renderDashboard() {
         botonesHTML += `
             <button class="btn-custom" data-seccion="Mi asistencia">Mi asistencia</button>
             <button class="btn-custom" data-seccion="Mis pagos">Mis pagos</button>
+            <button class="btn-custom" data-seccion="Test de autoevaluación">Test de autoevaluación</button>
             <button class="btn-custom" data-seccion="Mis calificaciones">Mis calificaciones</button>
             <button class="btn-custom" data-seccion="Mi diploma">Mi diploma</button>
-            <button class="btn-custom" data-seccion="Test de autoevaluación">Test de autoevaluación</button>
             <button class="btn-custom" data-seccion="Talleres">Talleres</button>
         `;
     }
@@ -166,7 +210,7 @@ function renderDashboard() {
             <main class="dashboard-content">
                 <div class="welcome-box">
                     <h2>Sección Actual: ${estadoApp.seccionActiva}</h2>
-                    <p>Panel de gestión del seminario dirigido por el Dr. y Mgter Rubén M. Pereyra.</p>
+                    <p>Panel conectado a Cloud Firestore. Gestión oficial del Dr. y Mgter Rubén M. Pereyra.</p>
                 </div>
             </main>
         </div>
