@@ -21,7 +21,7 @@ body {
     flex-direction: column;
 }
 
-/* --- LOGIN CENTRADO ABSOLUTO --- */
+/* --- PANTALLA DE LOGIN (CENTRADO ABSOLUTO) --- */
 .login-container {
     position: fixed;
     top: 0;
@@ -32,6 +32,7 @@ body {
     justify-content: center;
     align-items: center;
     background: radial-gradient(circle, #2b2b2b 0%, #141210 100%);
+    z-index: 100;
 }
 
 .login-card {
@@ -91,7 +92,7 @@ body {
     box-shadow: 0 0 6px rgba(29, 53, 87, 0.5);
 }
 
-/* --- BOTONES: Lavanda, Borde Azul, Glow Amarillo --- */
+/* --- BOTONES PERSONALIZADOS --- */
 .btn-custom {
     background-color: var(--lavender) !important;
     color: #ffffff !important;
@@ -123,7 +124,7 @@ body {
     margin-top: 0.8rem;
 }
 
-/* --- VIDEO INTRO CENTRADO Y REDUCIDO --- */
+/* --- VIDEO INTRO (CENTRADO Y REDUCIDO) --- */
 .intro-container {
     position: fixed;
     top: 0;
@@ -166,7 +167,7 @@ body {
 
 .video-wrapper {
     width: 100%;
-    max-width: 500px; /* Reducido y perfectamente centrado */
+    max-width: 500px;
     border-radius: 8px;
     overflow: hidden;
     border: 3px solid var(--blue-border);
