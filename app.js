@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 // Credenciales oficiales de su proyecto Firebase
 const firebaseConfig = {
@@ -25,8 +25,10 @@ let estadoApp = {
     seccionActiva: "Jornadas",
     modoFormularioJornada: false,
     modoFormularioMaterial: false,
+    modoFormularioParticipante: false,
     jornadasLista: [],
-    materialesLista: []
+    materialesLista: [],
+    participantesLista: []
 };
 
 function render() {
@@ -75,40 +77,51 @@ function configurarEventosLogin() {
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const uInput = document.getElementById("usuario").value.trim().toUpperCase();
+        const uInput = document.getElementById("usuario").value.trim();
         const pInput = document.getElementById("password").value.trim();
         const errorDiv = document.getElementById("errorMsg");
         
         errorDiv.innerText = "Verificando en base de datos...";
 
         let usuarioEncontrado = null;
+        let accesoRestringido = false;
 
-        try {
-            if (!db) throw new Error("Base de datos no inicializada");
-            
-            const querySnapshot = await getDocs(collection(db, "usuarios"));
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.user && data.user.toUpperCase() === uInput && data.pass === pInput) {
-                    usuarioEncontrado = data;
+        // Validar si es el Administrador estático por defecto
+        if (uInput === "DRPEREYRA" && pInput === "235689") {
+            usuarioEncontrado = { user: "DRPEREYRA", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" };
+        } else {
+            try {
+                if (db) {
+                    const querySnapshot = await getDocs(collection(db, "usuarios"));
+                    querySnapshot.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        // Coincidencia con los campos asignados
+                        if (data.usuarioAsignado && data.usuarioAsignado.trim() === uInput) {
+                            if (data.passAsignada && data.passAsignada.trim() === pInput) {
+                                // Verificar si el acceso está restringido
+                                if (data.restringido === true) {
+                                    accesoRestringido = true;
+                                } else {
+                                    usuarioEncontrado = {
+                                        id: docSnap.id,
+                                        user: data.usuarioAsignado,
+                                        role: "participant",
+                                        nombre: data.apellidoNombres,
+                                        foto: data.foto
+                                    };
+                                }
+                            }
+                        }
+                    });
                 }
-            });
-        } catch (error) {
-            console.error("Error consultando Firestore:", error);
+            } catch (error) {
+                console.error("Error consultando usuarios en Firestore:", error);
+            }
         }
 
-        // Respaldo local de seguridad
-        if (!usuarioEncontrado) {
-            const usuariosLocales = [
-                { user: "DRPEREYRA", pass: "235689", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" },
-                { user: "P1", pass: "XX", role: "participant", nombre: "Participante 1" },
-                { user: "P2", pass: "YY", role: "participant", nombre: "Participante 2" },
-                { user: "P3", pass: "ZZ", role: "participant", nombre: "Participante 3" }
-            ];
-            usuarioEncontrado = usuariosLocales.find(u => u.user === uInput && u.pass === pInput);
-        }
-
-        if (usuarioEncontrado) {
+        if (accesoRestringido) {
+            errorDiv.innerText = "Comuníquese con administración.";
+        } else if (usuarioEncontrado) {
             estadoApp.usuarioActual = usuarioEncontrado;
             estadoApp.pantalla = "intro";
             if (usuarioEncontrado.role !== "admin") {
@@ -117,7 +130,6 @@ function configurarEventosLogin() {
                 estadoApp.seccionActiva = "Jornadas";
             }
             
-            // Precargar datos de la nube
             await cargarDatosDesdeDB();
 
             render();
@@ -188,7 +200,7 @@ async function cargarDatosDesdeDB() {
     try {
         if (!db) return;
         
-        // Cargar Jornadas
+        // Jornadas
         const snapJornadas = await getDocs(collection(db, "jornadas"));
         let listaJ = [];
         snapJornadas.forEach((doc) => {
@@ -196,13 +208,25 @@ async function cargarDatosDesdeDB() {
         });
         estadoApp.jornadasLista = listaJ;
 
-        // Cargar Materiales
+        // Materiales
         const snapMateriales = await getDocs(collection(db, "materiales"));
         let listaM = [];
         snapMateriales.forEach((doc) => {
             listaM.push({ id: doc.id, ...doc.data() });
         });
         estadoApp.materialesLista = listaM;
+
+        // Participantes
+        const snapParticipantes = await getDocs(collection(db, "usuarios"));
+        let listaP = [];
+        snapParticipantes.forEach((doc) => {
+            const data = doc.data();
+            // Excluir al admin principal si estuviera guardado en la misma colección
+            if (data.usuarioAsignado !== "DRPEREYRA") {
+                listaP.push({ id: doc.id, ...data });
+            }
+        });
+        estadoApp.participantesLista = listaP;
 
     } catch (e) {
         console.error("Error al obtener datos de Firestore:", e);
@@ -340,7 +364,83 @@ function obtenerContenidoSeccion() {
         }
     }
 
-    // 3. VISTA PARTICIPANTE: "Mis jornadas"
+    // 3. GESTIÓN DE PARTICIPANTES (Admin)
+    else if (esAdmin && estadoApp.seccionActiva === "Participantes") {
+        if (estadoApp.modoFormularioParticipante) {
+            return `
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border: 2px solid var(--blue-border);">
+                    <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Alta de Participante</h2>
+                    <form id="formCargarParticipante" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="form-group" style="text-align: left;">
+                            <label>Cargar foto (URL o nombre de archivo)</label>
+                            <input type="url" id="pFoto" required placeholder="https://... o foto.jpg" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Apellido y Nombres</label>
+                            <input type="text" id="pNombre" required placeholder="Ej: Pérez, Juan Carlos" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>DNI</label>
+                            <input type="text" id="pDni" required placeholder="Ej: 35123456" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Usuario asignado</label>
+                            <input type="text" id="pUsuario" required placeholder="Ej: JPEREZ" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Contraseña asignada</label>
+                            <input type="password" id="pPass" required placeholder="Contraseña o DNI" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
+                            <button type="button" id="btnCancelarParticipante" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important; border-color: #495057 !important;">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        } else {
+            let htmlParticipantesAdmin = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.6rem;">Gestión de Participantes</h2>
+                        <p style="color: #555;">Panel de control y credenciales de acceso de alumnos.</p>
+                    </div>
+                    <button id="btnAbrirFormParticipante" class="btn-custom">➕ Cargar Participante</button>
+                </div>
+                <div style="display: grid; gap: 1.5rem;">
+            `;
+
+            if (estadoApp.participantesLista.length === 0) {
+                htmlParticipantesAdmin += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay participantes dados de alta en la base de datos.</p>`;
+            } else {
+                estadoApp.participantesLista.forEach(p => {
+                    const estadoRestringido = p.restringido === true;
+                    htmlParticipantesAdmin += `
+                        <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid ${estadoRestringido ? '#d90429' : 'var(--lavender)'}; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                            <img src="${p.foto}" alt="${p.apellidoNombres}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid var(--blue-border);">
+                            <div style="flex: 1;">
+                                <h3 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.15rem;">${p.apellidoNombres}</h3>
+                                <p style="font-size: 0.9rem; color: #555;">DNI: ${p.dni} | Usuario: <b>${p.usuarioAsignado}</b></p>
+                                <p style="font-size: 0.85rem; color: ${estadoRestringido ? '#d90429' : '#2b9348'}; font-weight: bold; margin-top: 0.3rem;">
+                                    ${estadoRestringido ? '🔴 Acceso Restringido' : '🟢 Acceso Activo'}
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button class="btn-custom btn-restringir" data-id="${p.id}" data-estado="${estadoRestringido ? 'activo' : 'restringido'}" style="background-color: ${estadoRestringido ? '#2b9348' : '#e0a96d'} !important; font-size: 0.85rem;">
+                                    ${estadoRestringido ? 'Habilitar Acceso' : 'Restringir Acceso'}
+                                </button>
+                                <button class="btn-custom btn-eliminar-participante" data-id="${p.id}" style="background-color: #d90429 !important; font-size: 0.85rem;">Eliminar</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            htmlParticipantesAdmin += `</div>`;
+            return htmlParticipantesAdmin;
+        }
+    }
+
+    // 4. VISTA PARTICIPANTE: "Mis jornadas"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
         let htmlMisJornadas = `
             <div style="margin-bottom: 2rem;">
@@ -371,7 +471,7 @@ function obtenerContenidoSeccion() {
         return htmlMisJornadas;
     } 
 
-    // 4. VISTA PARTICIPANTE: "Mis materiales"
+    // 5. VISTA PARTICIPANTE: "Mis materiales"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis materiales") {
         let htmlMisMateriales = `
             <div style="margin-bottom: 2rem;">
@@ -420,6 +520,7 @@ function renderDashboard() {
         botonesHTML += `
             <button class="btn-custom" data-seccion="Jornadas">Jornadas</button>
             <button class="btn-custom" data-seccion="Materiales">Materiales</button>
+            <button class="btn-custom" data-seccion="Participantes">Participantes</button>
             <button class="btn-custom" data-seccion="Asistencia">Asistencia</button>
             <button class="btn-custom" data-seccion="Pagos">Pagos</button>
             <button class="btn-custom" data-seccion="Calificaciones">Calificaciones</button>
@@ -474,11 +575,13 @@ function configurarEventosDashboard() {
                 estadoApp.seccionActiva = "Jornadas";
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.modoFormularioMaterial = false;
+                estadoApp.modoFormularioParticipante = false;
                 render();
             } else {
                 estadoApp.seccionActiva = seccion;
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.modoFormularioMaterial = false;
+                estadoApp.modoFormularioParticipante = false;
                 
                 await cargarDatosDesdeDB();
                 render();
@@ -569,6 +672,86 @@ function configurarEventosDashboard() {
             }
         });
     }
+
+    // Eventos de Participantes (Admin)
+    const btnAbrirFormP = document.getElementById("btnAbrirFormParticipante");
+    if (btnAbrirFormP) {
+        btnAbrirFormP.addEventListener("click", () => {
+            estadoApp.modoFormularioParticipante = true;
+            render();
+        });
+    }
+
+    const btnCancelarP = document.getElementById("btnCancelarParticipante");
+    if (btnCancelarP) {
+        btnCancelarP.addEventListener("click", () => {
+            estadoApp.modoFormularioParticipante = false;
+            render();
+        });
+    }
+
+    const formCargarP = document.getElementById("formCargarParticipante");
+    if (formCargarP) {
+        formCargarP.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nuevoParticipante = {
+                foto: document.getElementById("pFoto").value.trim(),
+                apellidoNombres: document.getElementById("pNombre").value.trim(),
+                dni: document.getElementById("pDni").value.trim(),
+                usuarioAsignado: document.getElementById("pUsuario").value.trim(),
+                passAsignada: document.getElementById("pPass").value.trim(),
+                restringido: false
+            };
+
+            try {
+                if (db) {
+                    await addDoc(collection(db, "usuarios"), nuevoParticipante);
+                }
+                estadoApp.modoFormularioParticipante = false;
+                await cargarDatosDesdeDB();
+                render();
+            } catch (error) {
+                console.error("Error al guardar participante:", error);
+                alert("Hubo un error al registrar el participante.");
+            }
+        });
+    }
+
+    // Botones de eliminar y restringir participante
+    const botonesEliminarP = document.querySelectorAll(".btn-eliminar-participante");
+    botonesEliminarP.forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            if (confirm("¿Está seguro de eliminar este participante del sistema?")) {
+                try {
+                    await deleteDoc(doc(db, "usuarios", idDoc));
+                    await cargarDatosDesdeDB();
+                    render();
+                } catch (err) {
+                    console.error("Error al eliminar participante:", err);
+                }
+            }
+        });
+    });
+
+    const botonesRestringirP = document.querySelectorAll(".btn-restringir");
+    botonesRestringirP.forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            const estadoActual = e.target.getAttribute("data-estado");
+            const nuevoEstadoRestringido = (estadoActual === "restringido");
+
+            try {
+                await updateDoc(doc(db, "usuarios", idDoc), {
+                    restringido: nuevoEstadoRestringido
+                });
+                await cargarDatosDesdeDB();
+                render();
+            } catch (err) {
+                console.error("Error al actualizar acceso del participante:", err);
+            }
+        });
+    });
 }
 
 window.addEventListener("DOMContentLoaded", render);
