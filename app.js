@@ -122,13 +122,11 @@ function configurarEventosIntro() {
 function renderDashboard() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
     
-    // Botones para todas las categorías
     let botonesHTML = `
         <button class="btn-custom" data-seccion="Jornadas">Jornadas</button>
         <button class="btn-custom" data-seccion="Materiales">Materiales</button>
     `;
 
-    // Botones exclusivos de Administrador
     if (esAdmin) {
         botonesHTML += `
             <button class="btn-custom" data-seccion="Asistencia">Asistencia</button>
@@ -137,7 +135,6 @@ function renderDashboard() {
             <button class="btn-custom" data-seccion="Diplomas">Diplomas</button>
         `;
     } else {
-        // Botones exclusivos de Participantes
         botonesHTML += `
             <button class="btn-custom" data-seccion="Mi asistencia">Mi asistencia</button>
             <button class="btn-custom" data-seccion="Mis pagos">Mis pagos</button>
@@ -148,7 +145,6 @@ function renderDashboard() {
         `;
     }
 
-    // Botón Salir común al final
     botonesHTML += `<button class="btn-custom" data-seccion="Salir" style="background-color: #d90429 !important; border-color: #8d0801 !important; margin-left: auto;">Salir</button>`;
 
     return `
