@@ -24,7 +24,9 @@ let estadoApp = {
     usuarioActual: null,
     seccionActiva: "Jornadas",
     modoFormularioJornada: false,
-    jornadasLista: []
+    modoFormularioMaterial: false,
+    jornadasLista: [],
+    materialesLista: []
 };
 
 function render() {
@@ -115,8 +117,8 @@ function configurarEventosLogin() {
                 estadoApp.seccionActiva = "Jornadas";
             }
             
-            // Precargar las jornadas antes de entrar al dashboard
-            await cargarJornadasDesdeDB();
+            // Precargar datos de la nube
+            await cargarDatosDesdeDB();
 
             render();
             reproducirAudioIntro();
@@ -167,7 +169,7 @@ function configurarEventosIntro() {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
         }
-        await cargarJornadasDesdeDB();
+        await cargarDatosDesdeDB();
         estadoApp.pantalla = "dashboard";
         render();
     };
@@ -182,23 +184,35 @@ function configurarEventosIntro() {
     }
 }
 
-async function cargarJornadasDesdeDB() {
+async function cargarDatosDesdeDB() {
     try {
         if (!db) return;
-        const querySnapshot = await getDocs(collection(db, "jornadas"));
-        let lista = [];
-        querySnapshot.forEach((doc) => {
-            lista.push({ id: doc.id, ...doc.data() });
+        
+        // Cargar Jornadas
+        const snapJornadas = await getDocs(collection(db, "jornadas"));
+        let listaJ = [];
+        snapJornadas.forEach((doc) => {
+            listaJ.push({ id: doc.id, ...doc.data() });
         });
-        estadoApp.jornadasLista = lista;
+        estadoApp.jornadasLista = listaJ;
+
+        // Cargar Materiales
+        const snapMateriales = await getDocs(collection(db, "materiales"));
+        let listaM = [];
+        snapMateriales.forEach((doc) => {
+            listaM.push({ id: doc.id, ...doc.data() });
+        });
+        estadoApp.materialesLista = listaM;
+
     } catch (e) {
-        console.error("Error al obtener jornadas:", e);
+        console.error("Error al obtener datos de Firestore:", e);
     }
 }
 
 function obtenerContenidoSeccion() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
 
+    // 1. GESTIÓN DE JORNADAS (Admin)
     if (esAdmin && estadoApp.seccionActiva === "Jornadas") {
         if (estadoApp.modoFormularioJornada) {
             return `
@@ -267,6 +281,66 @@ function obtenerContenidoSeccion() {
             return htmlJornadasAdmin;
         }
     } 
+
+    // 2. GESTIÓN DE MATERIALES (Admin)
+    else if (esAdmin && estadoApp.seccionActiva === "Materiales") {
+        if (estadoApp.modoFormularioMaterial) {
+            return `
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border: 2px solid var(--blue-border);">
+                    <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Cargar Nuevo Material</h2>
+                    <form id="formCargarMaterial" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="form-group" style="text-align: left;">
+                            <label>Nombre del material</label>
+                            <input type="text" id="mNombre" required placeholder="Ej: Guía clínica de aromaterapia..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Link de la imagen</label>
+                            <input type="url" id="mImagen" required placeholder="https://... o nombre de archivo" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Link del PDF en Google Drive</label>
+                            <input type="url" id="mPdf" required placeholder="https://drive.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
+                            <button type="button" id="btnCancelarMaterial" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important; border-color: #495057 !important;">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        } else {
+            let htmlMaterialesAdmin = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.6rem;">Gestión de Materiales Académicos</h2>
+                        <p style="color: #555;">Panel de administración general del Dr. y Mgter Rubén M. Pereyra.</p>
+                    </div>
+                    <button id="btnAbrirFormMaterial" class="btn-custom">➕ Cargar Nuevo Material</button>
+                </div>
+                <div style="display: grid; gap: 1.5rem;">
+            `;
+
+            if (estadoApp.materialesLista.length === 0) {
+                htmlMaterialesAdmin += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay materiales cargados actualmente en la base de datos.</p>`;
+            } else {
+                estadoApp.materialesLista.forEach(m => {
+                    htmlMaterialesAdmin += `
+                        <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--lavender); display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                            <img src="${m.imagen}" alt="${m.nombre}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px; border: 2px solid var(--blue-border);">
+                            <div style="flex: 1;">
+                                <h3 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.15rem;">${m.nombre}</h3>
+                                <a href="${m.pdf}" target="_blank" style="color: #1d3557; font-weight: bold; font-size: 0.9rem;">📄 Ver PDF en Google Drive</a>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            htmlMaterialesAdmin += `</div>`;
+            return htmlMaterialesAdmin;
+        }
+    }
+
+    // 3. VISTA PARTICIPANTE: "Mis jornadas"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
         let htmlMisJornadas = `
             <div style="margin-bottom: 2rem;">
@@ -296,6 +370,37 @@ function obtenerContenidoSeccion() {
         htmlMisJornadas += `</div>`;
         return htmlMisJornadas;
     } 
+
+    // 4. VISTA PARTICIPANTE: "Mis materiales"
+    else if (!esAdmin && estadoApp.seccionActiva === "Mis materiales") {
+        let htmlMisMateriales = `
+            <div style="margin-bottom: 2rem;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Mis Materiales Académicos</h2>
+                <p style="color: #555;">Repositorio bibliográfico oficial alojado en Google Drive.</p>
+            </div>
+            <div style="display: grid; gap: 1.5rem;">
+        `;
+
+        if (estadoApp.materialesLista.length === 0) {
+            htmlMisMateriales += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">Próximamente se habilitarán los materiales de estudio.</p>`;
+        } else {
+            estadoApp.materialesLista.forEach(m => {
+                htmlMisMateriales += `
+                    <div style="background: var(--white); padding: 1.8rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--lavender); display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                        <img src="${m.imagen}" alt="${m.nombre}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid var(--blue-border);">
+                        <div style="flex: 1;">
+                            <h3 style="color: var(--blue-border); margin-bottom: 0.8rem; font-size: 1.2rem;">${m.nombre}</h3>
+                            <a href="${m.pdf}" target="_blank" class="btn-custom" style="text-decoration: none; display: inline-block;">📥 Descargar PDF (Google Drive)</a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        htmlMisMateriales += `</div>`;
+        return htmlMisMateriales;
+    }
+
+    // Vistas por defecto
     else {
         return `
             <div class="welcome-box">
@@ -368,38 +473,39 @@ function configurarEventosDashboard() {
                 estadoApp.pantalla = "login";
                 estadoApp.seccionActiva = "Jornadas";
                 estadoApp.modoFormularioJornada = false;
+                estadoApp.modoFormularioMaterial = false;
                 render();
             } else {
                 estadoApp.seccionActiva = seccion;
                 estadoApp.modoFormularioJornada = false;
-                // Asegurar carga de datos antes de pintar
-                if (seccion === "Jornadas" || seccion === "Mis jornadas") {
-                    await cargarJornadasDesdeDB();
-                }
+                estadoApp.modoFormularioMaterial = false;
+                
+                await cargarDatosDesdeDB();
                 render();
             }
         });
     });
 
-    const btnAbrirForm = document.getElementById("btnAbrirFormJornada");
-    if (btnAbrirForm) {
-        btnAbrirForm.addEventListener("click", () => {
+    // Eventos de Jornadas (Admin)
+    const btnAbrirFormJ = document.getElementById("btnAbrirFormJornada");
+    if (btnAbrirFormJ) {
+        btnAbrirFormJ.addEventListener("click", () => {
             estadoApp.modoFormularioJornada = true;
             render();
         });
     }
 
-    const btnCancelar = document.getElementById("btnCancelarJornada");
-    if (btnCancelar) {
-        btnCancelar.addEventListener("click", () => {
+    const btnCancelarJ = document.getElementById("btnCancelarJornada");
+    if (btnCancelarJ) {
+        btnCancelarJ.addEventListener("click", () => {
             estadoApp.modoFormularioJornada = false;
             render();
         });
     }
 
-    const formCargar = document.getElementById("formCargarJornada");
-    if (formCargar) {
-        formCargar.addEventListener("submit", async (e) => {
+    const formCargarJ = document.getElementById("formCargarJornada");
+    if (formCargarJ) {
+        formCargarJ.addEventListener("submit", async (e) => {
             e.preventDefault();
             const nuevaJornada = {
                 nombre: document.getElementById("jNombre").value.trim(),
@@ -414,11 +520,52 @@ function configurarEventosDashboard() {
                     await addDoc(collection(db, "jornadas"), nuevaJornada);
                 }
                 estadoApp.modoFormularioJornada = false;
-                await cargarJornadasDesdeDB();
+                await cargarDatosDesdeDB();
                 render();
             } catch (error) {
-                console.error("Error al guardar la jornada en Firestore:", error);
-                alert("Hubo un error al guardar la jornada en la base de datos.");
+                console.error("Error al guardar jornada:", error);
+                alert("Hubo un error al guardar la jornada.");
+            }
+        });
+    }
+
+    // Eventos de Materiales (Admin)
+    const btnAbrirFormM = document.getElementById("btnAbrirFormMaterial");
+    if (btnAbrirFormM) {
+        btnAbrirFormM.addEventListener("click", () => {
+            estadoApp.modoFormularioMaterial = true;
+            render();
+        });
+    }
+
+    const btnCancelarM = document.getElementById("btnCancelarMaterial");
+    if (btnCancelarM) {
+        btnCancelarM.addEventListener("click", () => {
+            estadoApp.modoFormularioMaterial = false;
+            render();
+        });
+    }
+
+    const formCargarM = document.getElementById("formCargarMaterial");
+    if (formCargarM) {
+        formCargarM.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nuevoMaterial = {
+                nombre: document.getElementById("mNombre").value.trim(),
+                imagen: document.getElementById("mImagen").value.trim(),
+                pdf: document.getElementById("mPdf").value.trim()
+            };
+
+            try {
+                if (db) {
+                    await addDoc(collection(db, "materiales"), nuevoMaterial);
+                }
+                estadoApp.modoFormularioMaterial = false;
+                await cargarDatosDesdeDB();
+                render();
+            } catch (error) {
+                console.error("Error al guardar material:", error);
+                alert("Hubo un error al guardar el material.");
             }
         });
     }
