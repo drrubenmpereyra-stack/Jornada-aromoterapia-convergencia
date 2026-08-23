@@ -1,8 +1,7 @@
-// Importar los SDKs necesarios de Firebase vía CDN modular oficial
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
-// CREDENCIALES OFICIALES DE SU PROYECTO FIREBASE
+// Credenciales oficiales de su proyecto Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyAVFOWLQtNdaa_pDW8qvFjajmYY08jn9hY",
     authDomain: "aromoterapia-convergenci.firebaseapp.com",
@@ -12,25 +11,16 @@ const firebaseConfig = {
     appId: "1:164268096827:web:a9ab4a1bdeb7a3ea9b4b1e"
 };
 
-// Inicialización segura de Firebase Firestore
 let db = null;
 try {
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
-} catch (e) {
-    console.warn("Aviso: No se pudo conectar a Firebase, operando en modo local.", e);
+} catch (err) {
+    console.error("Error al conectar con Firebase:", err);
 }
 
-// Lista de usuarios de respaldo local (garantiza acceso inmediato)
-const usuariosRespaldo = [
-    { user: "DRPEREYRA", pass: "235689", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" },
-    { user: "P1", pass: "XX", role: "participant", nombre: "Participante 1" },
-    { user: "P2", pass: "YY", role: "participant", nombre: "Participante 2" },
-    { user: "P3", pass: "ZZ", role: "participant", nombre: "Participante 3" }
-];
-
 let estadoApp = {
-    pantalla: "login", // 'login', 'intro', 'dashboard'
+    pantalla: "login",
     usuarioActual: null,
     seccionActiva: "Jornadas"
 };
@@ -85,32 +75,34 @@ function configurarEventosLogin() {
         const pInput = document.getElementById("password").value.trim();
         const errorDiv = document.getElementById("errorMsg");
         
-        errorDiv.innerText = "Verificando credenciales...";
+        errorDiv.innerText = "Consultando base de datos...";
 
         let usuarioEncontrado = null;
 
-        // Intentar consultar en Cloud Firestore
-        if (db) {
-            try {
-                const q = query(collection(db, "usuarios"), where("user", "==", uInput));
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        if (data.pass === pInput) {
-                            usuarioEncontrado = data;
-                        }
-                    });
+        try {
+            if (!db) throw new Error("Base de datos no inicializada");
+            
+            // Obtenemos todos los documentos de la colección 'usuarios' en Firestore
+            const querySnapshot = await getDocs(collection(db, "usuarios"));
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.user && data.user.toUpperCase() === uInput && data.pass === pInput) {
+                    usuarioEncontrado = data;
                 }
-            } catch (error) {
-                console.warn("Consulta a Firestore omitida temporalmente, usando respaldo local.", error);
-            }
+            });
+        } catch (error) {
+            console.error("Error consultando Firestore:", error);
         }
 
-        // Si Firestore no devuelve al usuario (o aún no se creó el documento en la nube), busca en el respaldo local
+        // Respaldo de seguridad local estricto en caso de que la colección aún esté vacía en la nube
         if (!usuarioEncontrado) {
-            usuarioEncontrado = usuariosRespaldo.find(u => u.user === uInput && u.pass === pInput);
+            const usuariosLocales = [
+                { user: "DRPEREYRA", pass: "235689", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" },
+                { user: "P1", pass: "XX", role: "participant", nombre: "Participante 1" },
+                { user: "P2", pass: "YY", role: "participant", nombre: "Participante 2" },
+                { user: "P3", pass: "ZZ", role: "participant", nombre: "Participante 3" }
+            ];
+            usuarioEncontrado = usuariosLocales.find(u => u.user === uInput && u.pass === pInput);
         }
 
         if (usuarioEncontrado) {
@@ -119,7 +111,7 @@ function configurarEventosLogin() {
             render();
             reproducirAudioIntro();
         } else {
-            errorDiv.innerText = "Usuario o contraseña incorrectos.";
+            errorDiv.innerText = "Usuario o contraseña incorrectos, o verifique la colección 'usuarios' en Firestore.";
         }
     });
 }
