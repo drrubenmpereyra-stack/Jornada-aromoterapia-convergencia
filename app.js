@@ -6,7 +6,7 @@ const usuarios = [
 ];
 
 let estadoApp = {
-    pantalla: "login", // 'login', 'intro', 'dashboard'
+    pantalla: "login",
     usuarioActual: null,
     seccionActiva: "Jornadas"
 };
@@ -27,7 +27,6 @@ function render() {
     }
 }
 
-// 1. Login
 function renderLogin() {
     return `
         <div class="login-container">
@@ -70,7 +69,6 @@ function configurarEventosLogin() {
     });
 }
 
-// 2. Video Intro Centrado y Reducido
 function renderIntro() {
     return `
         <div class="intro-container">
@@ -95,11 +93,10 @@ function reproducirAudioIntro() {
         const texto = "Bienvenidos Seminario Aromaterapia Clínica de la Convergencia 2026";
         const mensaje = new SpeechSynthesisUtterance(texto);
         mensaje.lang = 'es-ES';
-        mensaje.rate = 0.90; // Ritmo académico pausado
+        mensaje.rate = 0.90;
         
-        // Intentar buscar una voz femenina en español
         const voces = window.speechSynthesis.getVoices();
-        const vozFemenina = voces.find(v => v.lang.startsWith('es') && (v.name.includes('Female') || v.name.includes('Helena') || v.name.includes('Laura') || v.name.includes('Sofia') || v.name.includes('Microsoft Zira') || v.name.includes('Monica')));
+        const vozFemenina = voces.find(v => v.lang.startsWith('es') && (v.name.includes('Female') || v.name.includes('Helena') || v.name.includes('Laura') || v.name.includes('Sofia') || v.name.includes('Monica')));
         if (vozFemenina) {
             mensaje.voice = vozFemenina;
         }
@@ -122,17 +119,14 @@ function configurarEventosIntro() {
     video.addEventListener("ended", irAlDashboard);
 }
 
-// 3. Dashboard con Nueva Jerarquía de Botones
 function renderDashboard() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
     
-    // Botones comunes para ambas categorías
     let botonesHTML = `
         <button class="btn-custom" data-seccion="Jornadas">Jornadas</button>
         <button class="btn-custom" data-seccion="Materiales">Materiales</button>
     `;
 
-    // Botones específicos según jerarquía
     if (esAdmin) {
         botonesHTML += `
             <button class="btn-custom" data-seccion="Asistencia">Asistencia</button>
@@ -151,8 +145,7 @@ function renderDashboard() {
         `;
     }
 
-    // Botón Salir común al final (alineado a la derecha)
-    botonesHTML += `<button class="btn-custom" data-seccion="Salir" style="background-color: #d90429; border-color: #8d0801; margin-left: auto;">Salir</button>`;
+    botonesHTML += `<button class="btn-custom" data-seccion="Salir" style="background-color: #d90429 !important; border-color: #8d0801 !important; margin-left: auto;">Salir</button>`;
 
     return `
         <div class="dashboard-container">
