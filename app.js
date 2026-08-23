@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 // Credenciales oficiales de su proyecto Firebase
 const firebaseConfig = {
@@ -28,7 +28,9 @@ let estadoApp = {
     modoFormularioParticipante: false,
     jornadasLista: [],
     materialesLista: [],
-    participantesLista: []
+    participantesLista: [],
+    asistenciaLista: [],
+    pagosLista: []
 };
 
 function render() {
@@ -86,7 +88,6 @@ function configurarEventosLogin() {
         let usuarioEncontrado = null;
         let accesoRestringido = false;
 
-        // Validar si es el Administrador estático por defecto
         if (uInput === "DRPEREYRA" && pInput === "235689") {
             usuarioEncontrado = { user: "DRPEREYRA", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" };
         } else {
@@ -95,10 +96,8 @@ function configurarEventosLogin() {
                     const querySnapshot = await getDocs(collection(db, "usuarios"));
                     querySnapshot.forEach((docSnap) => {
                         const data = docSnap.data();
-                        // Coincidencia con los campos asignados
                         if (data.usuarioAsignado && data.usuarioAsignado.trim() === uInput) {
                             if (data.passAsignada && data.passAsignada.trim() === pInput) {
-                                // Verificar si el acceso está restringido
                                 if (data.restringido === true) {
                                     accesoRestringido = true;
                                 } else {
@@ -203,17 +202,13 @@ async function cargarDatosDesdeDB() {
         // Jornadas
         const snapJornadas = await getDocs(collection(db, "jornadas"));
         let listaJ = [];
-        snapJornadas.forEach((doc) => {
-            listaJ.push({ id: doc.id, ...doc.data() });
-        });
+        snapJornadas.forEach((doc) => { listaJ.push({ id: doc.id, ...doc.data() }); });
         estadoApp.jornadasLista = listaJ;
 
         // Materiales
         const snapMateriales = await getDocs(collection(db, "materiales"));
         let listaM = [];
-        snapMateriales.forEach((doc) => {
-            listaM.push({ id: doc.id, ...doc.data() });
-        });
+        snapMateriales.forEach((doc) => { listaM.push({ id: doc.id, ...doc.data() }); });
         estadoApp.materialesLista = listaM;
 
         // Participantes
@@ -221,12 +216,23 @@ async function cargarDatosDesdeDB() {
         let listaP = [];
         snapParticipantes.forEach((doc) => {
             const data = doc.data();
-            // Excluir al admin principal si estuviera guardado en la misma colección
             if (data.usuarioAsignado !== "DRPEREYRA") {
                 listaP.push({ id: doc.id, ...data });
             }
         });
         estadoApp.participantesLista = listaP;
+
+        // Asistencia
+        const snapAsistencia = await getDocs(collection(db, "asistencia"));
+        let listaA = [];
+        snapAsistencia.forEach((doc) => { listaA.push({ id: doc.id, ...doc.data() }); });
+        estadoApp.asistenciaLista = listaA;
+
+        // Pagos
+        const snapPagos = await getDocs(collection(db, "pagos"));
+        let listaPag = [];
+        snapPagos.forEach((doc) => { listaPag.push({ id: doc.id, ...doc.data() }); });
+        estadoApp.pagosLista = listaPag;
 
     } catch (e) {
         console.error("Error al obtener datos de Firestore:", e);
@@ -245,10 +251,10 @@ function obtenerContenidoSeccion() {
                     <form id="formCargarJornada" style="display: flex; flex-direction: column; gap: 1rem;">
                         <div class="form-group" style="text-align: left;">
                             <label>Nombre de la Jornada</label>
-                            <input type="text" id="jNombre" required placeholder="Ej: Jornada 1: Bases neurocientíficas..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="jNombre" required placeholder="Ej: Jornada 1: Bases..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
-                            <label>Imagen de la Jornada (Nombre de archivo en repo)</label>
+                            <label>Imagen de la Jornada (Archivo en repo)</label>
                             <input type="text" id="jImagen" required placeholder="Ej: Jornada1.jpg" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
@@ -256,53 +262,52 @@ function obtenerContenidoSeccion() {
                             <input type="date" id="jFecha" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
-                            <label>Link del MEET (Enlace de transmisión)</label>
+                            <label>Link del MEET</label>
                             <input type="url" id="jMeet" required placeholder="https://meet.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
-                            <label>Link de la clase grabada (Google Drive u otro)</label>
+                            <label>Link de la clase grabada</label>
                             <input type="url" id="jGrabacion" required placeholder="https://drive.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                             <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
-                            <button type="button" id="btnCancelarJornada" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important; border-color: #495057 !important;">Cancelar</button>
+                            <button type="button" id="btnCancelarJornada" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important;">Cancelar</button>
                         </div>
                     </form>
                 </div>
             `;
         } else {
-            let htmlJornadasAdmin = `
+            let htmlJ = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <h2 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.6rem;">Gestión de Jornadas Académicas</h2>
-                        <p style="color: #555;">Panel de administración general del Dr. y Mgter Rubén M. Pereyra.</p>
+                        <p style="color: #555;">Panel de administración general.</p>
                     </div>
                     <button id="btnAbrirFormJornada" class="btn-custom">➕ Cargar Jornada</button>
                 </div>
                 <div style="display: grid; gap: 1.5rem;">
             `;
-
             if (estadoApp.jornadasLista.length === 0) {
-                htmlJornadasAdmin += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay jornadas cargadas actualmente en la base de datos.</p>`;
+                htmlJ += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay jornadas cargadas.</p>`;
             } else {
                 estadoApp.jornadasLista.forEach(j => {
-                    htmlJornadasAdmin += `
+                    htmlJ += `
                         <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--lavender); display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
                             <img src="${j.imagen}" alt="${j.nombre}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 6px; border: 2px solid var(--blue-border);">
                             <div style="flex: 1;">
                                 <span style="font-size: 0.85rem; background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 4px; color: var(--blue-border); font-weight: bold;">📅 ${j.fecha}</span>
                                 <h3 style="color: var(--blue-border); margin-top: 0.4rem; margin-bottom: 0.5rem; font-size: 1.15rem;">${j.nombre}</h3>
-                                <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem;">
-                                    <a href="${j.meet}" target="_blank" style="color: #1d3557; font-weight: bold;">🔗 Enlace MEET</a>
-                                    <a href="${j.grabacion}" target="_blank" style="color: #1d3557; font-weight: bold;">🎥 Clase Grabada</a>
+                                <div style="display: flex; gap: 1rem; font-size: 0.9rem;">
+                                    <a href="${j.meet}" target="_blank" style="color: #1d3557; font-weight: bold;">🔗 MEET</a>
+                                    <a href="${j.grabacion}" target="_blank" style="color: #1d3557; font-weight: bold;">🎥 Grabación</a>
                                 </div>
                             </div>
                         </div>
                     `;
                 });
             }
-            htmlJornadasAdmin += `</div>`;
-            return htmlJornadasAdmin;
+            htmlJ += `</div>`;
+            return htmlJ;
         }
     } 
 
@@ -315,11 +320,11 @@ function obtenerContenidoSeccion() {
                     <form id="formCargarMaterial" style="display: flex; flex-direction: column; gap: 1rem;">
                         <div class="form-group" style="text-align: left;">
                             <label>Nombre del material</label>
-                            <input type="text" id="mNombre" required placeholder="Ej: Guía clínica de aromaterapia..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="mNombre" required placeholder="Ej: Guía clínica..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Link de la imagen</label>
-                            <input type="url" id="mImagen" required placeholder="https://... o nombre de archivo" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="url" id="mImagen" required placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Link del PDF en Google Drive</label>
@@ -327,28 +332,27 @@ function obtenerContenidoSeccion() {
                         </div>
                         <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                             <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
-                            <button type="button" id="btnCancelarMaterial" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important; border-color: #495057 !important;">Cancelar</button>
+                            <button type="button" id="btnCancelarMaterial" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important;">Cancelar</button>
                         </div>
                     </form>
                 </div>
             `;
         } else {
-            let htmlMaterialesAdmin = `
+            let htmlM = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <h2 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.6rem;">Gestión de Materiales Académicos</h2>
-                        <p style="color: #555;">Panel de administración general del Dr. y Mgter Rubén M. Pereyra.</p>
+                        <p style="color: #555;">Repositorio bibliográfico.</p>
                     </div>
-                    <button id="btnAbrirFormMaterial" class="btn-custom">➕ Cargar Nuevo Material</button>
+                    <button id="btnAbrirFormMaterial" class="btn-custom">➕ Cargar Material</button>
                 </div>
                 <div style="display: grid; gap: 1.5rem;">
             `;
-
             if (estadoApp.materialesLista.length === 0) {
-                htmlMaterialesAdmin += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay materiales cargados actualmente en la base de datos.</p>`;
+                htmlM += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay materiales cargados.</p>`;
             } else {
                 estadoApp.materialesLista.forEach(m => {
-                    htmlMaterialesAdmin += `
+                    htmlM += `
                         <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--lavender); display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
                             <img src="${m.imagen}" alt="${m.nombre}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px; border: 2px solid var(--blue-border);">
                             <div style="flex: 1;">
@@ -359,8 +363,8 @@ function obtenerContenidoSeccion() {
                     `;
                 });
             }
-            htmlMaterialesAdmin += `</div>`;
-            return htmlMaterialesAdmin;
+            htmlM += `</div>`;
+            return htmlM;
         }
     }
 
@@ -372,12 +376,12 @@ function obtenerContenidoSeccion() {
                     <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Alta de Participante</h2>
                     <form id="formCargarParticipante" style="display: flex; flex-direction: column; gap: 1rem;">
                         <div class="form-group" style="text-align: left;">
-                            <label>Cargar foto (URL o nombre de archivo)</label>
-                            <input type="url" id="pFoto" required placeholder="https://... o foto.jpg" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <label>Cargar foto (URL)</label>
+                            <input type="url" id="pFoto" required placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Apellido y Nombres</label>
-                            <input type="text" id="pNombre" required placeholder="Ej: Pérez, Juan Carlos" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="pNombre" required placeholder="Ej: Pérez, Juan" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>DNI</label>
@@ -393,41 +397,40 @@ function obtenerContenidoSeccion() {
                         </div>
                         <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                             <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
-                            <button type="button" id="btnCancelarParticipante" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important; border-color: #495057 !important;">Cancelar</button>
+                            <button type="button" id="btnCancelarParticipante" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important;">Cancelar</button>
                         </div>
                     </form>
                 </div>
             `;
         } else {
-            let htmlParticipantesAdmin = `
+            let htmlP = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <h2 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.6rem;">Gestión de Participantes</h2>
-                        <p style="color: #555;">Panel de control y credenciales de acceso de alumnos.</p>
+                        <p style="color: #555;">Control de alumnos y credenciales.</p>
                     </div>
                     <button id="btnAbrirFormParticipante" class="btn-custom">➕ Cargar Participante</button>
                 </div>
                 <div style="display: grid; gap: 1.5rem;">
             `;
-
             if (estadoApp.participantesLista.length === 0) {
-                htmlParticipantesAdmin += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay participantes dados de alta en la base de datos.</p>`;
+                htmlP += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay participantes registrados.</p>`;
             } else {
                 estadoApp.participantesLista.forEach(p => {
-                    const estadoRestringido = p.restringido === true;
-                    htmlParticipantesAdmin += `
-                        <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid ${estadoRestringido ? '#d90429' : 'var(--lavender)'}; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                    const estRestr = p.restringido === true;
+                    htmlP += `
+                        <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid ${estRestr ? '#d90429' : 'var(--lavender)'}; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
                             <img src="${p.foto}" alt="${p.apellidoNombres}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid var(--blue-border);">
                             <div style="flex: 1;">
                                 <h3 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.15rem;">${p.apellidoNombres}</h3>
                                 <p style="font-size: 0.9rem; color: #555;">DNI: ${p.dni} | Usuario: <b>${p.usuarioAsignado}</b></p>
-                                <p style="font-size: 0.85rem; color: ${estadoRestringido ? '#d90429' : '#2b9348'}; font-weight: bold; margin-top: 0.3rem;">
-                                    ${estadoRestringido ? '🔴 Acceso Restringido' : '🟢 Acceso Activo'}
+                                <p style="font-size: 0.85rem; color: ${estRestr ? '#d90429' : '#2b9348'}; font-weight: bold; margin-top: 0.3rem;">
+                                    ${estRestr ? '🔴 Acceso Restringido' : '🟢 Acceso Activo'}
                                 </p>
                             </div>
                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                <button class="btn-custom btn-restringir" data-id="${p.id}" data-estado="${estadoRestringido ? 'activo' : 'restringido'}" style="background-color: ${estadoRestringido ? '#2b9348' : '#e0a96d'} !important; font-size: 0.85rem;">
-                                    ${estadoRestringido ? 'Habilitar Acceso' : 'Restringir Acceso'}
+                                <button class="btn-custom btn-restringir" data-id="${p.id}" data-estado="${estRestr ? 'activo' : 'restringido'}" style="background-color: ${estRestr ? '#2b9348' : '#e0a96d'} !important; font-size: 0.85rem;">
+                                    ${estRestr ? 'Habilitar' : 'Restringir'}
                                 </button>
                                 <button class="btn-custom btn-eliminar-participante" data-id="${p.id}" style="background-color: #d90429 !important; font-size: 0.85rem;">Eliminar</button>
                             </div>
@@ -435,69 +438,323 @@ function obtenerContenidoSeccion() {
                     `;
                 });
             }
-            htmlParticipantesAdmin += `</div>`;
-            return htmlParticipantesAdmin;
+            htmlP += `</div>`;
+            return htmlP;
         }
     }
 
-    // 4. VISTA PARTICIPANTE: "Mis jornadas"
+    // 4. GESTIÓN DE ASISTENCIA (Admin)
+    else if (esAdmin && estadoApp.seccionActiva === "Asistencia") {
+        let optionsSelect = `<option value="">Seleccione un participante</option>`;
+        estadoApp.participantesLista.forEach(p => {
+            optionsSelect += `<option value="${p.apellidoNombres}">${p.apellidoNombres}</option>`;
+        });
+
+        let htmlAsistenciaAdmin = `
+            <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 2rem; border: 2px solid var(--blue-border);">
+                <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Carga de Asistencia</h2>
+                <form id="formCargarAsistencia" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: end;">
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Apellido y Nombres</label>
+                        <select id="aParticipante" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            ${optionsSelect}
+                        </select>
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Jornada</label>
+                        <input type="text" id="aJornada" required placeholder="Ej: Jornada 1" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Selector de fecha</label>
+                        <input type="date" id="aFecha" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Estado</label>
+                        <select id="aEstado" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <option value="Presente">Presente</option>
+                            <option value="Ausente">Ausente</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-custom" style="padding: 0.75rem; height: 44px;">Cargar</button>
+                </form>
+            </div>
+
+            <h2 style="color: var(--blue-border); margin-bottom: 1rem; font-size: 1.4rem;">Registro General de Asistencia</h2>
+            <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        `;
+
+        if (estadoApp.asistenciaLista.length === 0) {
+            htmlAsistenciaAdmin += `<p style="color: #666;">No hay registros de asistencia cargados.</p>`;
+        } else {
+            htmlAsistenciaAdmin += `
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--blue-border); color: var(--blue-border);">
+                            <th style="padding: 0.75rem;">Participante</th>
+                            <th style="padding: 0.75rem;">Jornada</th>
+                            <th style="padding: 0.75rem;">Fecha</th>
+                            <th style="padding: 0.75rem;">Estado</th>
+                            <th style="padding: 0.75rem; text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            estadoApp.asistenciaLista.forEach(item => {
+                const esPresente = item.estado === "Presente";
+                htmlAsistenciaAdmin += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 0.75rem; font-weight: 600;">${item.participante}</td>
+                        <td style="padding: 0.75rem;">${item.jornada}</td>
+                        <td style="padding: 0.75rem;">${item.fecha}</td>
+                        <td style="padding: 0.75rem; color: ${esPresente ? '#2b9348' : '#d90429'}; font-weight: bold;">${item.estado}</td>
+                        <td style="padding: 0.75rem; text-align: center;">
+                            <button class="btn-custom btn-eliminar-asistencia" data-id="${item.id}" style="background-color: #d90429 !important; padding: 0.4rem 0.8rem; font-size: 0.85rem;">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            htmlAsistenciaAdmin += `</tbody></table>`;
+        }
+        htmlAsistenciaAdmin += `</div>`;
+        return htmlAsistenciaAdmin;
+    }
+
+    // 5. GESTIÓN DE PAGOS (Admin)
+    else if (esAdmin && estadoApp.seccionActiva === "Pagos") {
+        let optionsSelectP = `<option value="">Seleccione un participante</option>`;
+        estadoApp.participantesLista.forEach(p => {
+            optionsSelectP += `<option value="${p.apellidoNombres}">${p.apellidoNombres}</option>`;
+        });
+
+        let htmlPagosAdmin = `
+            <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 2rem; border: 2px solid var(--blue-border);">
+                <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Carga de Pagos</h2>
+                <form id="formCargarPago" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end;">
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Apellido y Nombres</label>
+                        <select id="pagParticipante" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            ${optionsSelectP}
+                        </select>
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Jornada (1 o 2)</label>
+                        <input type="text" id="pagJornada" required placeholder="Ej: 1" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Selector de fecha</label>
+                        <input type="date" id="pagFecha" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Importe en $</label>
+                        <input type="number" id="pagImporte" required placeholder="0.00" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Medio</label>
+                        <select id="pagMedio" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Estado</label>
+                        <select id="pagEstado" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <option value="Pagado">Pagado</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Becado">Becado</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-custom" style="padding: 0.75rem; height: 44px; grid-column: 1 / -1;">Cargar</button>
+                </form>
+            </div>
+
+            <h2 style="color: var(--blue-border); margin-bottom: 1rem; font-size: 1.4rem;">Registro General de Pagos</h2>
+            <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        `;
+
+        if (estadoApp.pagosLista.length === 0) {
+            htmlPagosAdmin += `<p style="color: #666;">No hay registros de pagos cargados.</p>`;
+        } else {
+            htmlPagosAdmin += `
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--blue-border); color: var(--blue-border);">
+                            <th style="padding: 0.75rem;">Participante</th>
+                            <th style="padding: 0.75rem;">Jornada</th>
+                            <th style="padding: 0.75rem;">Fecha</th>
+                            <th style="padding: 0.75rem;">Importe</th>
+                            <th style="padding: 0.75rem;">Medio</th>
+                            <th style="padding: 0.75rem;">Estado</th>
+                            <th style="padding: 0.75rem; text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            estadoApp.pagosLista.forEach(item => {
+                htmlPagosAdmin += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 0.75rem; font-weight: 600;">${item.participante}</td>
+                        <td style="padding: 0.75rem;">Jornada ${item.jornada}</td>
+                        <td style="padding: 0.75rem;">${item.fecha}</td>
+                        <td style="padding: 0.75rem;">$ ${item.importe}</td>
+                        <td style="padding: 0.75rem;">${item.medio}</td>
+                        <td style="padding: 0.75rem; font-weight: bold; color: ${item.estado === 'Pagado' ? '#2b9348' : (item.estado === 'Becado' ? '#4a90e2' : '#e0a96d')};">${item.estado}</td>
+                        <td style="padding: 0.75rem; text-align: center;">
+                            <button class="btn-custom btn-eliminar-pago" data-id="${item.id}" style="background-color: #d90429 !important; padding: 0.4rem 0.8rem; font-size: 0.85rem;">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            htmlPagosAdmin += `</tbody></table>`;
+        }
+        htmlPagosAdmin += `</div>`;
+        return htmlPagosAdmin;
+    }
+
+    // 6. VISTA PARTICIPANTE: "Mis jornadas"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
-        let htmlMisJornadas = `
+        let htmlMisJ = `
             <div style="margin-bottom: 2rem;">
                 <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Mis Jornadas Académicas</h2>
-                <p style="color: #555;">Acceda a las transmisiones en vivo y grabaciones oficiales del seminario.</p>
+                <p style="color: #555;">Acceda a las transmisiones y grabaciones oficiales.</p>
             </div>
             <div style="display: grid; gap: 1.5rem;">
         `;
-
         if (estadoApp.jornadasLista.length === 0) {
-            htmlMisJornadas += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">Próximamente se habilitarán las jornadas del seminario.</p>`;
+            htmlMisJ += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">Próximamente se habilitarán las jornadas.</p>`;
         } else {
             estadoApp.jornadasLista.forEach(j => {
-                htmlMisJornadas += `
+                htmlMisJ += `
                     <div style="background: var(--white); padding: 1.8rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--lavender); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
                         <img src="${j.imagen}" alt="${j.nombre}" style="width: 100%; max-width: 450px; height: auto; border-radius: 8px; border: 3px solid var(--blue-border);">
                         <span style="font-size: 0.85rem; background: #e9ecef; padding: 0.3rem 0.6rem; border-radius: 4px; color: var(--blue-border); font-weight: bold;">📅 ${j.fecha}</span>
                         <h3 style="color: var(--blue-border); font-size: 1.2rem;">${j.nombre}</h3>
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 0.5rem;">
                             <a href="${j.meet}" target="_blank" class="btn-custom" style="text-decoration: none;">🟢 Unirse a MEET</a>
-                            <a href="${j.grabacion}" target="_blank" class="btn-custom" style="background-color: var(--blue-border) !important; border-color: var(--lavender) !important; text-decoration: none;">🎥 Ver Clase Grabada</a>
+                            <a href="${j.grabacion}" target="_blank" class="btn-custom" style="background-color: var(--blue-border) !important; text-decoration: none;">🎥 Ver Clase Grabada</a>
                         </div>
                     </div>
                 `;
             });
         }
-        htmlMisJornadas += `</div>`;
-        return htmlMisJornadas;
+        htmlMisJ += `</div>`;
+        return htmlMisJ;
     } 
 
-    // 5. VISTA PARTICIPANTE: "Mis materiales"
+    // 7. VISTA PARTICIPANTE: "Mis materiales"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis materiales") {
-        let htmlMisMateriales = `
+        let htmlMisM = `
             <div style="margin-bottom: 2rem;">
                 <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Mis Materiales Académicos</h2>
-                <p style="color: #555;">Repositorio bibliográfico oficial alojado en Google Drive.</p>
+                <p style="color: #555;">Repositorio bibliográfico.</p>
             </div>
             <div style="display: grid; gap: 1.5rem;">
         `;
-
         if (estadoApp.materialesLista.length === 0) {
-            htmlMisMateriales += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">Próximamente se habilitarán los materiales de estudio.</p>`;
+            htmlMisM += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">Próximamente se habilitarán los materiales.</p>`;
         } else {
             estadoApp.materialesLista.forEach(m => {
-                htmlMisMateriales += `
+                htmlMisM += `
                     <div style="background: var(--white); padding: 1.8rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--lavender); display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
                         <img src="${m.imagen}" alt="${m.nombre}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid var(--blue-border);">
                         <div style="flex: 1;">
                             <h3 style="color: var(--blue-border); margin-bottom: 0.8rem; font-size: 1.2rem;">${m.nombre}</h3>
-                            <a href="${m.pdf}" target="_blank" class="btn-custom" style="text-decoration: none; display: inline-block;">📥 Descargar PDF (Google Drive)</a>
+                            <a href="${m.pdf}" target="_blank" class="btn-custom" style="text-decoration: none; display: inline-block;">📥 Descargar PDF</a>
                         </div>
                     </div>
                 `;
             });
         }
-        htmlMisMateriales += `</div>`;
-        return htmlMisMateriales;
+        htmlMisM += `</div>`;
+        return htmlMisM;
+    }
+
+    // 8. VISTA PARTICIPANTE: "Mi asistencia"
+    else if (!esAdmin && estadoApp.seccionActiva === "Mi asistencia") {
+        const nombreParticipante = estadoApp.usuarioActual.nombre;
+        const misAsistencias = estadoApp.asistenciaLista.filter(a => a.participante === nombreParticipante);
+
+        let htmlMiAsis = `
+            <div style="margin-bottom: 2rem;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Mi Registro de Asistencia</h2>
+                <p style="color: #555;">Historial de presencias en las jornadas del seminario.</p>
+            </div>
+            <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        `;
+
+        if (misAsistencias.length === 0) {
+            htmlMiAsis += `<p style="color: #666;">Aún no registra asistencias cargadas en el sistema.</p>`;
+        } else {
+            htmlMiAsis += `
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--blue-border); color: var(--blue-border);">
+                            <th style="padding: 0.75rem;">Jornada</th>
+                            <th style="padding: 0.75rem;">Fecha</th>
+                            <th style="padding: 0.75rem;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            misAsistencias.forEach(item => {
+                const esP = item.estado === "Presente";
+                htmlMiAsis += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 0.75rem; font-weight: 600;">${item.jornada}</td>
+                        <td style="padding: 0.75rem;">${item.fecha}</td>
+                        <td style="padding: 0.75rem; color: ${esP ? '#2b9348' : '#d90429'}; font-weight: bold;">${item.estado}</td>
+                    </tr>
+                `;
+            });
+            htmlMiAsis += `</tbody></table>`;
+        }
+        htmlMiAsis += `</div>`;
+        return htmlMiAsis;
+    }
+
+    // 9. VISTA PARTICIPANTE: "Mis pagos"
+    else if (!esAdmin && estadoApp.seccionActiva === "Mis pagos") {
+        const nombreParticipante = estadoApp.usuarioActual.nombre;
+        const misPagos = estadoApp.pagosLista.filter(p => p.participante === nombreParticipante);
+
+        let htmlMiPago = `
+            <div style="margin-bottom: 2rem;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Mis Pagos y Aranceles</h2>
+                <p style="color: #555;">Estado de cuenta y comprobantes registrados.</p>
+            </div>
+            <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        `;
+
+        if (misPagos.length === 0) {
+            htmlMiPago += `<p style="color: #666;">Aún no registra pagos o aranceles cargados en el sistema.</p>`;
+        } else {
+            htmlMiPago += `
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--blue-border); color: var(--blue-border);">
+                            <th style="padding: 0.75rem;">Jornada</th>
+                            <th style="padding: 0.75rem;">Fecha</th>
+                            <th style="padding: 0.75rem;">Importe</th>
+                            <th style="padding: 0.75rem;">Medio</th>
+                            <th style="padding: 0.75rem;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            misPagos.forEach(item => {
+                htmlMiPago += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 0.75rem; font-weight: 600;">Jornada ${item.jornada}</td>
+                        <td style="padding: 0.75rem;">${item.fecha}</td>
+                        <td style="padding: 0.75rem;">$ ${item.importe}</td>
+                        <td style="padding: 0.75rem;">${item.medio}</td>
+                        <td style="padding: 0.75rem; font-weight: bold; color: ${item.estado === 'Pagado' ? '#2b9348' : (item.estado === 'Becado' ? '#4a90e2' : '#e0a96d')};">${item.estado}</td>
+                    </tr>
+                `;
+            });
+            htmlMiPago += `</tbody></table>`;
+        }
+        htmlMiPago += `</div>`;
+        return htmlMiPago;
     }
 
     // Vistas por defecto
@@ -589,23 +846,11 @@ function configurarEventosDashboard() {
         });
     });
 
-    // Eventos de Jornadas (Admin)
+    // Eventos de Jornadas
     const btnAbrirFormJ = document.getElementById("btnAbrirFormJornada");
-    if (btnAbrirFormJ) {
-        btnAbrirFormJ.addEventListener("click", () => {
-            estadoApp.modoFormularioJornada = true;
-            render();
-        });
-    }
-
+    if (btnAbrirFormJ) btnAbrirFormJ.addEventListener("click", () => { estadoApp.modoFormularioJornada = true; render(); });
     const btnCancelarJ = document.getElementById("btnCancelarJornada");
-    if (btnCancelarJ) {
-        btnCancelarJ.addEventListener("click", () => {
-            estadoApp.modoFormularioJornada = false;
-            render();
-        });
-    }
-
+    if (btnCancelarJ) btnCancelarJ.addEventListener("click", () => { estadoApp.modoFormularioJornada = false; render(); });
     const formCargarJ = document.getElementById("formCargarJornada");
     if (formCargarJ) {
         formCargarJ.addEventListener("submit", async (e) => {
@@ -617,38 +862,20 @@ function configurarEventosDashboard() {
                 meet: document.getElementById("jMeet").value.trim(),
                 grabacion: document.getElementById("jGrabacion").value.trim()
             };
-
             try {
-                if (db) {
-                    await addDoc(collection(db, "jornadas"), nuevaJornada);
-                }
+                if (db) await addDoc(collection(db, "jornadas"), nuevaJornada);
                 estadoApp.modoFormularioJornada = false;
                 await cargarDatosDesdeDB();
                 render();
-            } catch (error) {
-                console.error("Error al guardar jornada:", error);
-                alert("Hubo un error al guardar la jornada.");
-            }
+            } catch (error) { console.error(error); alert("Error al guardar jornada."); }
         });
     }
 
-    // Eventos de Materiales (Admin)
+    // Eventos de Materiales
     const btnAbrirFormM = document.getElementById("btnAbrirFormMaterial");
-    if (btnAbrirFormM) {
-        btnAbrirFormM.addEventListener("click", () => {
-            estadoApp.modoFormularioMaterial = true;
-            render();
-        });
-    }
-
+    if (btnAbrirFormM) btnAbrirFormM.addEventListener("click", () => { estadoApp.modoFormularioMaterial = true; render(); });
     const btnCancelarM = document.getElementById("btnCancelarMaterial");
-    if (btnCancelarM) {
-        btnCancelarM.addEventListener("click", () => {
-            estadoApp.modoFormularioMaterial = false;
-            render();
-        });
-    }
-
+    if (btnCancelarM) btnCancelarM.addEventListener("click", () => { estadoApp.modoFormularioMaterial = false; render(); });
     const formCargarM = document.getElementById("formCargarMaterial");
     if (formCargarM) {
         formCargarM.addEventListener("submit", async (e) => {
@@ -658,38 +885,20 @@ function configurarEventosDashboard() {
                 imagen: document.getElementById("mImagen").value.trim(),
                 pdf: document.getElementById("mPdf").value.trim()
             };
-
             try {
-                if (db) {
-                    await addDoc(collection(db, "materiales"), nuevoMaterial);
-                }
+                if (db) await addDoc(collection(db, "materiales"), nuevoMaterial);
                 estadoApp.modoFormularioMaterial = false;
                 await cargarDatosDesdeDB();
                 render();
-            } catch (error) {
-                console.error("Error al guardar material:", error);
-                alert("Hubo un error al guardar el material.");
-            }
+            } catch (error) { console.error(error); alert("Error al guardar material."); }
         });
     }
 
-    // Eventos de Participantes (Admin)
+    // Eventos de Participantes
     const btnAbrirFormP = document.getElementById("btnAbrirFormParticipante");
-    if (btnAbrirFormP) {
-        btnAbrirFormP.addEventListener("click", () => {
-            estadoApp.modoFormularioParticipante = true;
-            render();
-        });
-    }
-
+    if (btnAbrirFormP) btnAbrirFormP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = true; render(); });
     const btnCancelarP = document.getElementById("btnCancelarParticipante");
-    if (btnCancelarP) {
-        btnCancelarP.addEventListener("click", () => {
-            estadoApp.modoFormularioParticipante = false;
-            render();
-        });
-    }
-
+    if (btnCancelarP) btnCancelarP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = false; render(); });
     const formCargarP = document.getElementById("formCargarParticipante");
     if (formCargarP) {
         formCargarP.addEventListener("submit", async (e) => {
@@ -702,54 +911,87 @@ function configurarEventosDashboard() {
                 passAsignada: document.getElementById("pPass").value.trim(),
                 restringido: false
             };
-
             try {
-                if (db) {
-                    await addDoc(collection(db, "usuarios"), nuevoParticipante);
-                }
+                if (db) await addDoc(collection(db, "usuarios"), nuevoParticipante);
                 estadoApp.modoFormularioParticipante = false;
                 await cargarDatosDesdeDB();
                 render();
-            } catch (error) {
-                console.error("Error al guardar participante:", error);
-                alert("Hubo un error al registrar el participante.");
-            }
+            } catch (error) { console.error(error); alert("Error al registrar participante."); }
         });
     }
 
     // Botones de eliminar y restringir participante
-    const botonesEliminarP = document.querySelectorAll(".btn-eliminar-participante");
-    botonesEliminarP.forEach(btn => {
+    document.querySelectorAll(".btn-eliminar-participante").forEach(btn => {
         btn.addEventListener("click", async (e) => {
             const idDoc = e.target.getAttribute("data-id");
-            if (confirm("¿Está seguro de eliminar este participante del sistema?")) {
-                try {
-                    await deleteDoc(doc(db, "usuarios", idDoc));
-                    await cargarDatosDesdeDB();
-                    render();
-                } catch (err) {
-                    console.error("Error al eliminar participante:", err);
-                }
+            if (confirm("¿Está seguro de eliminar este participante?")) {
+                try { await deleteDoc(doc(db, "usuarios", idDoc)); await cargarDatosDesdeDB(); render(); } catch (err) { console.error(err); }
             }
         });
     });
 
-    const botonesRestringirP = document.querySelectorAll(".btn-restringir");
-    botonesRestringirP.forEach(btn => {
+    document.querySelectorAll(".btn-restringir").forEach(btn => {
         btn.addEventListener("click", async (e) => {
             const idDoc = e.target.getAttribute("data-id");
             const estadoActual = e.target.getAttribute("data-estado");
-            const nuevoEstadoRestringido = (estadoActual === "restringido");
-
             try {
-                await updateDoc(doc(db, "usuarios", idDoc), {
-                    restringido: nuevoEstadoRestringido
-                });
+                await updateDoc(doc(db, "usuarios", idDoc), { restringido: (estadoActual === "restringido") });
+                await cargarDatosDesdeDB(); render();
+            } catch (err) { console.error(err); }
+        });
+    });
+
+    // Evento Carga de Asistencia
+    const formCargarAsis = document.getElementById("formCargarAsistencia");
+    if (formCargarAsis) {
+        formCargarAsis.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nuevaAsis = {
+                participante: document.getElementById("aParticipante").value,
+                jornada: document.getElementById("aJornada").value.trim(),
+                fecha: document.getElementById("aFecha").value,
+                estado: document.getElementById("aEstado").value
+            };
+            try {
+                if (db) await addDoc(collection(db, "asistencia"), nuevaAsis);
                 await cargarDatosDesdeDB();
                 render();
-            } catch (err) {
-                console.error("Error al actualizar acceso del participante:", err);
-            }
+            } catch (error) { console.error(error); alert("Error al guardar asistencia."); }
+        });
+    }
+
+    document.querySelectorAll(".btn-eliminar-asistencia").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            try { await deleteDoc(doc(db, "asistencia", idDoc)); await cargarDatosDesdeDB(); render(); } catch (err) { console.error(err); }
+        });
+    });
+
+    // Evento Carga de Pagos
+    const formCargarPago = document.getElementById("formCargarPago");
+    if (formCargarPago) {
+        formCargarPago.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nuevoPago = {
+                participante: document.getElementById("pagParticipante").value,
+                jornada: document.getElementById("pagJornada").value.trim(),
+                fecha: document.getElementById("pagFecha").value,
+                importe: document.getElementById("pagImporte").value.trim(),
+                medio: document.getElementById("pagMedio").value,
+                estado: document.getElementById("pagEstado").value
+            };
+            try {
+                if (db) await addDoc(collection(db, "pagos"), nuevoPago);
+                await cargarDatosDesdeDB();
+                render();
+            } catch (error) { console.error(error); alert("Error al guardar pago."); }
+        });
+    }
+
+    document.querySelectorAll(".btn-eliminar-pago").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            try { await deleteDoc(doc(db, "pagos", idDoc)); await cargarDatosDesdeDB(); render(); } catch (err) { console.error(err); }
         });
     });
 }
