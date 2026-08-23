@@ -6,7 +6,7 @@ const usuarios = [
 ];
 
 let estadoApp = {
-    pantalla: "login",
+    pantalla: "login", // 'login', 'intro', 'dashboard'
     usuarioActual: null,
     seccionActiva: "Jornadas"
 };
