@@ -1,28 +1,5 @@
-// Importar los SDKs necesarios de Firebase vía CDN modular oficial
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
-
-// CREDENCIALES OFICIALES DE SU PROYECTO FIREBASE
-const firebaseConfig = {
-    apiKey: "AIzaSyAVFOWLQtNdaa_pDW8qvFjajmYY08jn9hY",
-    authDomain: "aromoterapia-convergenci.firebaseapp.com",
-    projectId: "aromoterapia-convergenci",
-    storageBucket: "aromoterapia-convergenci.firebasestorage.app",
-    messagingSenderId: "164268096827",
-    appId: "1:164268096827:web:a9ab4a1bdeb7a3ea9b4b1e"
-};
-
-// Inicialización segura de Firebase
-let db = null;
-try {
-    const app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-} catch (e) {
-    console.warn("Firebase no se pudo inicializar, operando en modo local seguro.", e);
-}
-
-// Base de datos de respaldo local garantizada
-const usuariosRespaldo = [
+// Base de datos de usuarios autorizados del seminario
+const usuarios = [
     { user: "DRPEREYRA", pass: "235689", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" },
     { user: "P1", pass: "XX", role: "participant", nombre: "Participante 1" },
     { user: "P2", pass: "YY", role: "participant", nombre: "Participante 2" },
@@ -79,39 +56,14 @@ function configurarEventosLogin() {
     const form = document.getElementById("loginForm");
     if (!form) return;
 
-    form.addEventListener("submit", async (e) => {
+    form.addEventListener("submit", (e) => {
         e.preventDefault();
         const uInput = document.getElementById("usuario").value.trim().toUpperCase();
         const pInput = document.getElementById("password").value.trim();
         const errorDiv = document.getElementById("errorMsg");
-        
-        errorDiv.innerText = "Verificando credenciales...";
 
-        let usuarioEncontrado = null;
-
-        // Intentar buscar en Firestore si está disponible
-        if (db) {
-            try {
-                const q = query(collection(db, "usuarios"), where("user", "==", uInput));
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        if (data.pass === pInput) {
-                            usuarioEncontrado = data;
-                        }
-                    });
-                }
-            } catch (error) {
-                console.warn("Firestore inaccesible, usando base local.", error);
-            }
-        }
-
-        // Si Firestore no devolvió nada (o aún no tiene la colección creada), busca en el respaldo local
-        if (!usuarioEncontrado) {
-            usuarioEncontrado = usuariosRespaldo.find(u => u.user === uInput && u.pass === pInput);
-        }
+        // Búsqueda directa y rápida en la lista de usuarios
+        const usuarioEncontrado = usuarios.find(u => u.user === uInput && u.pass === pInput);
 
         if (usuarioEncontrado) {
             estadoApp.usuarioActual = usuarioEncontrado;
@@ -175,7 +127,7 @@ function configurarEventosIntro() {
     const video = document.getElementById("introVideo");
     if (video) {
         video.addEventListener("ended", irAlDashboard);
-        video.play().catch(err => console.log("Autoplay bloqueado por navegador:", err));
+        video.play().catch(err => console.log("Autoplay bloqueado:", err));
     }
 }
 
@@ -226,7 +178,7 @@ function renderDashboard() {
             <main class="dashboard-content">
                 <div class="welcome-box">
                     <h2>Sección Actual: ${estadoApp.seccionActiva}</h2>
-                    <p>Panel de control oficial. Dirigido por el Dr. y Mgter Rubén M. Pereyra.</p>
+                    <p>Panel de control del seminario. Dirigido por el Dr. y Mgter Rubén M. Pereyra.</p>
                 </div>
             </main>
         </div>
