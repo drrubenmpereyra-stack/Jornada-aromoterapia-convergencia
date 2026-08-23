@@ -122,11 +122,13 @@ function configurarEventosIntro() {
 function renderDashboard() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
     
+    // Botones comunes para ambas categorías
     let botonesHTML = `
         <button class="btn-custom" data-seccion="Jornadas">Jornadas</button>
         <button class="btn-custom" data-seccion="Materiales">Materiales</button>
     `;
 
+    // Botones específicos según jerarquía
     if (esAdmin) {
         botonesHTML += `
             <button class="btn-custom" data-seccion="Asistencia">Asistencia</button>
@@ -145,6 +147,7 @@ function renderDashboard() {
         `;
     }
 
+    // Botón Salir común al final
     botonesHTML += `<button class="btn-custom" data-seccion="Salir" style="background-color: #d90429 !important; border-color: #8d0801 !important; margin-left: auto;">Salir</button>`;
 
     return `
