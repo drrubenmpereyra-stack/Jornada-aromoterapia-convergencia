@@ -6,7 +6,7 @@ const usuarios = [
 ];
 
 let estadoApp = {
-    pantalla: "login",
+    pantalla: "login", // 'login', 'intro', 'dashboard'
     usuarioActual: null,
     seccionActiva: "Jornadas"
 };
@@ -29,7 +29,7 @@ function render() {
 
 function renderLogin() {
     return `
-        <div class="login-container">
+        <div class="login-screen">
             <div class="login-card">
                 <img src="Logotipo.jpg" alt="Logotipo" class="login-logo">
                 <h2>Seminario de Aromaterapia</h2>
@@ -71,8 +71,8 @@ function configurarEventosLogin() {
 
 function renderIntro() {
     return `
-        <div class="intro-container">
-            <div class="intro-content-wrapper">
+        <div class="intro-screen">
+            <div class="intro-content">
                 <img src="Logotipo.jpg" alt="Logotipo" class="intro-logo">
                 <h1 class="animated-title">Bienvenidos Seminario Aromaterapia Clínica de la Convergencia 2026</h1>
                 <div class="video-wrapper">
@@ -95,8 +95,9 @@ function reproducirAudioIntro() {
         mensaje.lang = 'es-ES';
         mensaje.rate = 0.90;
         
+        // Buscar voz académica femenina si está disponible en el navegador
         const voces = window.speechSynthesis.getVoices();
-        const vozFemenina = voces.find(v => v.lang.startsWith('es') && (v.name.includes('Female') || v.name.includes('Helena') || v.name.includes('Laura') || v.name.includes('Sofia') || v.name.includes('Monica')));
+        const vozFemenina = voces.find(v => v.lang.startsWith('es') && (v.name.includes('Female') || v.name.includes('Helena') || v.name.includes('Laura') || v.name.includes('Sofia') || v.name.includes('Monica') || v.name.includes('Paulina')));
         if (vozFemenina) {
             mensaje.voice = vozFemenina;
         }
@@ -122,13 +123,13 @@ function configurarEventosIntro() {
 function renderDashboard() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
     
-    // Botones comunes para ambas categorías
+    // Botones para todas las categorías
     let botonesHTML = `
         <button class="btn-custom" data-seccion="Jornadas">Jornadas</button>
         <button class="btn-custom" data-seccion="Materiales">Materiales</button>
     `;
 
-    // Botones específicos según jerarquía
+    // Botones exclusivos de Administrador
     if (esAdmin) {
         botonesHTML += `
             <button class="btn-custom" data-seccion="Asistencia">Asistencia</button>
@@ -137,6 +138,7 @@ function renderDashboard() {
             <button class="btn-custom" data-seccion="Diplomas">Diplomas</button>
         `;
     } else {
+        // Botones exclusivos de Participantes
         botonesHTML += `
             <button class="btn-custom" data-seccion="Mi asistencia">Mi asistencia</button>
             <button class="btn-custom" data-seccion="Mis pagos">Mis pagos</button>
@@ -147,7 +149,7 @@ function renderDashboard() {
         `;
     }
 
-    // Botón Salir común al final
+    // Botón Salir común al final (alineado a la derecha)
     botonesHTML += `<button class="btn-custom" data-seccion="Salir" style="background-color: #d90429 !important; border-color: #8d0801 !important; margin-left: auto;">Salir</button>`;
 
     return `
