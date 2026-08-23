@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 // Credenciales oficiales de su proyecto Firebase
 const firebaseConfig = {
@@ -22,7 +22,9 @@ try {
 let estadoApp = {
     pantalla: "login",
     usuarioActual: null,
-    seccionActiva: "Jornadas"
+    seccionActiva: "Jornadas",
+    modoFormularioJornada: false, // Controla si se muestra el formulario de carga
+    jornadasLista: [] // Almacena las jornadas obtenidas de Firestore
 };
 
 function render() {
@@ -75,14 +77,13 @@ function configurarEventosLogin() {
         const pInput = document.getElementById("password").value.trim();
         const errorDiv = document.getElementById("errorMsg");
         
-        errorDiv.innerText = "Consultando base de datos...";
+        errorDiv.innerText = "Verificando en base de datos...";
 
         let usuarioEncontrado = null;
 
         try {
             if (!db) throw new Error("Base de datos no inicializada");
             
-            // Obtenemos todos los documentos de la colección 'usuarios' en Firestore
             const querySnapshot = await getDocs(collection(db, "usuarios"));
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
@@ -94,7 +95,7 @@ function configurarEventosLogin() {
             console.error("Error consultando Firestore:", error);
         }
 
-        // Respaldo de seguridad local estricto en caso de que la colección aún esté vacía en la nube
+        // Respaldo local de seguridad
         if (!usuarioEncontrado) {
             const usuariosLocales = [
                 { user: "DRPEREYRA", pass: "235689", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" },
@@ -108,10 +109,13 @@ function configurarEventosLogin() {
         if (usuarioEncontrado) {
             estadoApp.usuarioActual = usuarioEncontrado;
             estadoApp.pantalla = "intro";
+            if (usuarioEncontrado.role !== "admin" && estadoApp.seccionActiva === "Jornadas") {
+                estadoApp.seccionActiva = "Mis jornadas";
+            }
             render();
             reproducirAudioIntro();
         } else {
-            errorDiv.innerText = "Usuario o contraseña incorrectos, o verifique la colección 'usuarios' en Firestore.";
+            errorDiv.innerText = "Usuario o contraseña incorrectos.";
         }
     });
 }
@@ -171,16 +175,145 @@ function configurarEventosIntro() {
     }
 }
 
+// Función para obtener las jornadas desde Firestore
+async function cargarJornadasDesdeDB() {
+    try {
+        if (!db) return;
+        const querySnapshot = await getDocs(collection(db, "jornadas"));
+        let lista = [];
+        querySnapshot.forEach((doc) => {
+            lista.push({ id: doc.id, ...doc.data() });
+        });
+        estadoApp.jornadasLista = lista;
+    } catch (e) {
+        console.error("Error al obtener jornadas:", e);
+    }
+}
+
+function obtenerContenidoSeccion() {
+    const esAdmin = estadoApp.usuarioActual.role === "admin";
+
+    // Módulo de Administrador: "Jornadas"
+    if (esAdmin && estadoApp.seccionActiva === "Jornadas") {
+        if (estadoApp.modoFormularioJornada) {
+            return `
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border: 2px solid var(--blue-border);">
+                    <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Cargar Nueva Jornada</h2>
+                    <form id="formCargarJornada" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="form-group" style="text-align: left;">
+                            <label>Nombre de la Jornada</label>
+                            <input type="text" id="jNombre" required placeholder="Ej: Jornada 1: Bases neurocientíficas..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Imagen de la Jornada (Nombre de archivo en repo)</label>
+                            <input type="text" id="jImagen" required placeholder="Ej: Jornada1.jpg" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Fecha de la Jornada</label>
+                            <input type="date" id="jFecha" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Link del MEET (Enlace de transmisión)</label>
+                            <input type="url" id="jMeet" required placeholder="https://meet.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Link de la clase grabada (Google Drive u otro)</label>
+                            <input type="url" id="jGrabacion" required placeholder="https://drive.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
+                            <button type="button" id="btnCancelarJornada" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important; border-color: #495057 !important;">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        } else {
+            let htmlJornadasAdmin = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.6rem;">Gestión de Jornadas Académicas</h2>
+                        <p style="color: #555;">Panel de administración general del Dr. y Mgter Rubén M. Pereyra.</p>
+                    </div>
+                    <button id="btnAbrirFormJornada" class="btn-custom">➕ Cargar Jornada</button>
+                </div>
+                <div style="display: grid; gap: 1.5rem;">
+            `;
+
+            if (estadoApp.jornadasLista.length === 0) {
+                htmlJornadasAdmin += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay jornadas cargadas actualmente en la base de datos.</p>`;
+            } else {
+                estadoApp.jornadasLista.forEach(j => {
+                    htmlJornadasAdmin += `
+                        <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--lavender); display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                            <img src="${j.imagen}" alt="${j.nombre}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 6px; border: 2px solid var(--blue-border);">
+                            <div style="flex: 1;">
+                                <span style="font-size: 0.85rem; background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 4px; color: var(--blue-border); font-weight: bold;">📅 ${j.fecha}</span>
+                                <h3 style="color: var(--blue-border); margin-top: 0.4rem; margin-bottom: 0.5rem; font-size: 1.15rem;">${j.nombre}</h3>
+                                <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem;">
+                                    <a href="${j.meet}" target="_blank" style="color: #1d3557; font-weight: bold;">🔗 Enlace MEET</a>
+                                    <a href="${j.grabacion}" target="_blank" style="color: #1d3557; font-weight: bold;">🎥 Clase Grabada</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            htmlJornadasAdmin += `</div>`;
+            return htmlJornadasAdmin;
+        }
+    } 
+    
+    // Módulo de Participante: "Mis jornadas"
+    else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
+        let htmlMisJornadas = `
+            <div style="margin-bottom: 2rem;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Mis Jornadas Académicas</h2>
+                <p style="color: #555;">Acceda a las transmisiones en vivo y grabaciones oficiales del seminario.</p>
+            </div>
+            <div style="display: grid; gap: 1.5rem;">
+        `;
+
+        if (estadoApp.jornadasLista.length === 0) {
+            htmlMisJornadas += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">Próximamente se habilitarán las jornadas del seminario.</p>`;
+        } else {
+            estadoApp.jornadasLista.forEach(j => {
+                htmlMisJornadas += `
+                    <div style="background: var(--white); padding: 1.8rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--lavender); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
+                        <img src="${j.imagen}" alt="${j.nombre}" style="width: 100%; max-width: 450px; height: auto; border-radius: 8px; border: 3px solid var(--blue-border);">
+                        <span style="font-size: 0.85rem; background: #e9ecef; padding: 0.3rem 0.6rem; border-radius: 4px; color: var(--blue-border); font-weight: bold;">📅 ${j.fecha}</span>
+                        <h3 style="color: var(--blue-border); font-size: 1.2rem;">${j.nombre}</h3>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 0.5rem;">
+                            <a href="${j.meet}" target="_blank" class="btn-custom" style="text-decoration: none;">🟢 Unirse a MEET</a>
+                            <a href="${j.grabacion}" target="_blank" class="btn-custom" style="background-color: var(--blue-border) !important; border-color: var(--lavender) !important; text-decoration: none;">🎥 Ver Clase Grabada</a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        htmlMisJornadas += `</div>`;
+        return htmlMisJornadas;
+    } 
+    
+    // Demás secciones genéricas
+    else {
+        return `
+            <div class="welcome-box">
+                <h2>Sección Actual: ${estadoApp.seccionActiva}</h2>
+                <p>Panel del seminario dirigido por el Dr. y Mgter Rubén M. Pereyra.</p>
+            </div>
+        `;
+    }
+}
+
 function renderDashboard() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
     
-    let botonesHTML = `
-        <button class="btn-custom" data-seccion="Jornadas">Jornadas</button>
-        <button class="btn-custom" data-seccion="Materiales">Materiales</button>
-    `;
+    let botonesHTML = "";
 
     if (esAdmin) {
         botonesHTML += `
+            <button class="btn-custom" data-seccion="Jornadas">Jornadas</button>
+            <button class="btn-custom" data-seccion="Materiales">Materiales</button>
             <button class="btn-custom" data-seccion="Asistencia">Asistencia</button>
             <button class="btn-custom" data-seccion="Pagos">Pagos</button>
             <button class="btn-custom" data-seccion="Calificaciones">Calificaciones</button>
@@ -188,6 +321,8 @@ function renderDashboard() {
         `;
     } else {
         botonesHTML += `
+            <button class="btn-custom" data-seccion="Mis jornadas">Mis jornadas</button>
+            <button class="btn-custom" data-seccion="Mis materiales">Mis materiales</button>
             <button class="btn-custom" data-seccion="Mi asistencia">Mi asistencia</button>
             <button class="btn-custom" data-seccion="Mis pagos">Mis pagos</button>
             <button class="btn-custom" data-seccion="Test de autoevaluación">Test de autoevaluación</button>
@@ -216,16 +351,22 @@ function renderDashboard() {
             </nav>
 
             <main class="dashboard-content">
-                <div class="welcome-box">
-                    <h2>Sección Actual: ${estadoApp.seccionActiva}</h2>
-                    <p>Panel conectado a Cloud Firestore. Dirigido por el Dr. y Mgter Rubén M. Pereyra.</p>
-                </div>
+                ${obtenerContenidoSeccion()}
             </main>
         </div>
     `;
 }
 
-function configurarEventosDashboard() {
+async function configurarEventosDashboard() {
+    // Cargar jornadas desde Firestore antes de configurar eventos para tener la data lista
+    await cargarJornadasDesdeDB();
+    // Re-renderizar contenido principal con las jornadas ya cargadas
+    const contentMain = document.querySelector(".dashboard-content");
+    if (contentMain) {
+        contentMain.innerHTML = obtenerContenidoSeccion();
+    }
+
+    // Botones de navegación del menú
     const botones = document.querySelectorAll(".nav-menu .btn-custom");
     botones.forEach(btn => {
         btn.addEventListener("click", (e) => {
@@ -233,13 +374,59 @@ function configurarEventosDashboard() {
             if (seccion === "Salir") {
                 estadoApp.usuarioActual = null;
                 estadoApp.pantalla = "login";
+                estadoApp.seccionActiva = "Jornadas";
+                estadoApp.modoFormularioJornada = false;
                 render();
             } else {
                 estadoApp.seccionActiva = seccion;
+                estadoApp.modoFormularioJornada = false;
                 render();
             }
         });
     });
+
+    // Eventos específicos para el Administrador en la sección Jornadas
+    const btnAbrirForm = document.getElementById("btnAbrirFormJornada");
+    if (btnAbrirForm) {
+        btnAbrirForm.addEventListener("click", () => {
+            estadoApp.modoFormularioJornada = true;
+            render();
+        });
+    }
+
+    const btnCancelar = document.getElementById("btnCancelarJornada");
+    if (btnCancelar) {
+        btnCancelar.addEventListener("click", () => {
+            estadoApp.modoFormularioJornada = false;
+            render();
+        });
+    }
+
+    const formCargar = document.getElementById("formCargarJornada");
+    if (formCargar) {
+        formCargar.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nuevaJornada = {
+                nombre: document.getElementById("jNombre").value.trim(),
+                imagen: document.getElementById("jImagen").value.trim(),
+                fecha: document.getElementById("jFecha").value,
+                meet: document.getElementById("jMeet").value.trim(),
+                grabacion: document.getElementById("jGrabacion").value.trim()
+            };
+
+            try {
+                if (db) {
+                    await addDoc(collection(db, "jornadas"), nuevaJornada);
+                }
+                estadoApp.modoFormularioJornada = false;
+                await cargarJornadasDesdeDB();
+                render();
+            } catch (error) {
+                console.error("Error al guardar la jornada en Firestore:", error);
+                alert("Hubo un error al guardar la jornada en la base de datos.");
+            }
+        });
+    }
 }
 
 window.addEventListener("DOMContentLoaded", render);
