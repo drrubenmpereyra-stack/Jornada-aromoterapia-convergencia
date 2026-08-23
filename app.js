@@ -1,5 +1,28 @@
-// Base de datos de usuarios autorizados del seminario
-const usuarios = [
+// Importar los SDKs necesarios de Firebase vía CDN modular oficial
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+// CREDENCIALES OFICIALES DE SU PROYECTO FIREBASE
+const firebaseConfig = {
+    apiKey: "AIzaSyAVFOWLQtNdaa_pDW8qvFjajmYY08jn9hY",
+    authDomain: "aromoterapia-convergenci.firebaseapp.com",
+    projectId: "aromoterapia-convergenci",
+    storageBucket: "aromoterapia-convergenci.firebasestorage.app",
+    messagingSenderId: "164268096827",
+    appId: "1:164268096827:web:a9ab4a1bdeb7a3ea9b4b1e"
+};
+
+// Inicialización segura de Firebase Firestore
+let db = null;
+try {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+} catch (e) {
+    console.warn("Aviso: No se pudo conectar a Firebase, operando en modo local.", e);
+}
+
+// Lista de usuarios de respaldo local (garantiza acceso inmediato)
+const usuariosRespaldo = [
     { user: "DRPEREYRA", pass: "235689", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" },
     { user: "P1", pass: "XX", role: "participant", nombre: "Participante 1" },
     { user: "P2", pass: "YY", role: "participant", nombre: "Participante 2" },
@@ -56,14 +79,39 @@ function configurarEventosLogin() {
     const form = document.getElementById("loginForm");
     if (!form) return;
 
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const uInput = document.getElementById("usuario").value.trim().toUpperCase();
         const pInput = document.getElementById("password").value.trim();
         const errorDiv = document.getElementById("errorMsg");
+        
+        errorDiv.innerText = "Verificando credenciales...";
 
-        // Búsqueda directa y rápida en la lista de usuarios
-        const usuarioEncontrado = usuarios.find(u => u.user === uInput && u.pass === pInput);
+        let usuarioEncontrado = null;
+
+        // Intentar consultar en Cloud Firestore
+        if (db) {
+            try {
+                const q = query(collection(db, "usuarios"), where("user", "==", uInput));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if (data.pass === pInput) {
+                            usuarioEncontrado = data;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn("Consulta a Firestore omitida temporalmente, usando respaldo local.", error);
+            }
+        }
+
+        // Si Firestore no devuelve al usuario (o aún no se creó el documento en la nube), busca en el respaldo local
+        if (!usuarioEncontrado) {
+            usuarioEncontrado = usuariosRespaldo.find(u => u.user === uInput && u.pass === pInput);
+        }
 
         if (usuarioEncontrado) {
             estadoApp.usuarioActual = usuarioEncontrado;
@@ -178,7 +226,7 @@ function renderDashboard() {
             <main class="dashboard-content">
                 <div class="welcome-box">
                     <h2>Sección Actual: ${estadoApp.seccionActiva}</h2>
-                    <p>Panel de control del seminario. Dirigido por el Dr. y Mgter Rubén M. Pereyra.</p>
+                    <p>Panel conectado a Cloud Firestore. Dirigido por el Dr. y Mgter Rubén M. Pereyra.</p>
                 </div>
             </main>
         </div>
