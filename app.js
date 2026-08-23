@@ -23,8 +23,8 @@ let estadoApp = {
     pantalla: "login",
     usuarioActual: null,
     seccionActiva: "Jornadas",
-    modoFormularioJornada: false, // Controla si se muestra el formulario de carga
-    jornadasLista: [] // Almacena las jornadas obtenidas de Firestore
+    modoFormularioJornada: false,
+    jornadasLista: []
 };
 
 function render() {
@@ -109,9 +109,15 @@ function configurarEventosLogin() {
         if (usuarioEncontrado) {
             estadoApp.usuarioActual = usuarioEncontrado;
             estadoApp.pantalla = "intro";
-            if (usuarioEncontrado.role !== "admin" && estadoApp.seccionActiva === "Jornadas") {
+            if (usuarioEncontrado.role !== "admin") {
                 estadoApp.seccionActiva = "Mis jornadas";
+            } else {
+                estadoApp.seccionActiva = "Jornadas";
             }
+            
+            // Precargar las jornadas antes de entrar al dashboard
+            await cargarJornadasDesdeDB();
+
             render();
             reproducirAudioIntro();
         } else {
@@ -157,10 +163,11 @@ function reproducirAudioIntro() {
 }
 
 function configurarEventosIntro() {
-    const irAlDashboard = () => {
+    const irAlDashboard = async () => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
         }
+        await cargarJornadasDesdeDB();
         estadoApp.pantalla = "dashboard";
         render();
     };
@@ -175,7 +182,6 @@ function configurarEventosIntro() {
     }
 }
 
-// Función para obtener las jornadas desde Firestore
 async function cargarJornadasDesdeDB() {
     try {
         if (!db) return;
@@ -193,7 +199,6 @@ async function cargarJornadasDesdeDB() {
 function obtenerContenidoSeccion() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
 
-    // Módulo de Administrador: "Jornadas"
     if (esAdmin && estadoApp.seccionActiva === "Jornadas") {
         if (estadoApp.modoFormularioJornada) {
             return `
@@ -262,8 +267,6 @@ function obtenerContenidoSeccion() {
             return htmlJornadasAdmin;
         }
     } 
-    
-    // Módulo de Participante: "Mis jornadas"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
         let htmlMisJornadas = `
             <div style="margin-bottom: 2rem;">
@@ -293,8 +296,6 @@ function obtenerContenidoSeccion() {
         htmlMisJornadas += `</div>`;
         return htmlMisJornadas;
     } 
-    
-    // Demás secciones genéricas
     else {
         return `
             <div class="welcome-box">
@@ -357,19 +358,10 @@ function renderDashboard() {
     `;
 }
 
-async function configurarEventosDashboard() {
-    // Cargar jornadas desde Firestore antes de configurar eventos para tener la data lista
-    await cargarJornadasDesdeDB();
-    // Re-renderizar contenido principal con las jornadas ya cargadas
-    const contentMain = document.querySelector(".dashboard-content");
-    if (contentMain) {
-        contentMain.innerHTML = obtenerContenidoSeccion();
-    }
-
-    // Botones de navegación del menú
+function configurarEventosDashboard() {
     const botones = document.querySelectorAll(".nav-menu .btn-custom");
     botones.forEach(btn => {
-        btn.addEventListener("click", (e) => {
+        btn.addEventListener("click", async (e) => {
             const seccion = e.target.getAttribute("data-seccion");
             if (seccion === "Salir") {
                 estadoApp.usuarioActual = null;
@@ -380,12 +372,15 @@ async function configurarEventosDashboard() {
             } else {
                 estadoApp.seccionActiva = seccion;
                 estadoApp.modoFormularioJornada = false;
+                // Asegurar carga de datos antes de pintar
+                if (seccion === "Jornadas" || seccion === "Mis jornadas") {
+                    await cargarJornadasDesdeDB();
+                }
                 render();
             }
         });
     });
 
-    // Eventos específicos para el Administrador en la sección Jornadas
     const btnAbrirForm = document.getElementById("btnAbrirFormJornada");
     if (btnAbrirForm) {
         btnAbrirForm.addEventListener("click", () => {
