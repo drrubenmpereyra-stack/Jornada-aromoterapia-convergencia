@@ -1,0 +1,256 @@
+:root {
+    --primary-bg: #1a1614;
+    --card-bg: #ffffff;
+    --lavender: #b5838d;
+    --blue-border: #1d3557;
+    --yellow-glow: #ffd166;
+    --text-dark: #2b2b2b;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--primary-bg);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Pantalla de Login --- */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #2b2b2b, #1a1614);
+}
+
+.login-card {
+    background: var(--card-bg);
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    border: 2px solid var(--blue-border);
+}
+
+.login-logo {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 1rem auto;
+    display: block;
+    border: 3px solid var(--lavender);
+}
+
+.login-card h2 {
+    color: var(--blue-border);
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+}
+
+.form-group {
+    margin-bottom: 1.2rem;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: var(--blue-border);
+    box-shadow: 0 0 5px rgba(29, 53, 87, 0.4);
+}
+
+/* --- Estilo de Botones Solicitado (Lavanda, Borde Azul, Glow Amarillo) --- */
+.btn-custom {
+    background-color: var(--lavender);
+    color: #ffffff;
+    border: 2px solid var(--blue-border);
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.btn-custom:hover {
+    background-color: var(--lavender);
+    color: var(--blue-border);
+    box-shadow: 0 0 15px var(--yellow-glow), inset 0 0 5px var(--yellow-glow);
+    border-color: var(--yellow-glow);
+}
+
+.btn-submit {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.75rem;
+}
+
+.error-msg {
+    color: #e63946;
+    font-size: 0.85rem;
+    margin-top: 0.8rem;
+}
+
+/* --- Pantalla de Video Intro Centrada y Reducida --- */
+.intro-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.intro-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 700px;
+    width: 100%;
+    text-align: center;
+}
+
+.intro-logo {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    border: 2px solid var(--lavender);
+}
+
+.animated-title {
+    color: var(--lavender);
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    animation: fadeInDown 1.2s ease-in-out infinite alternate;
+}
+
+.video-wrapper {
+    width: 100%;
+    max-width: 600px; /* Reducido para que no ocupe toda la pantalla */
+    border-radius: 10px;
+    overflow: hidden;
+    border: 3px solid var(--blue-border);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    background: #000;
+    margin-bottom: 1.5rem;
+}
+
+.video-wrapper video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0.8; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(5px); }
+}
+
+/* --- Dashboard Principal --- */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+.dashboard-header {
+    background: #ffffff;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--blue-border);
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--lavender);
+}
+
+.header-brand h1 {
+    font-size: 1.1rem;
+    color: var(--blue-border);
+}
+
+.user-info {
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+/* Menú Superior Horizontal */
+.nav-menu {
+    background-color: #2b2d42;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.8rem 2rem;
+    align-items: center;
+    border-bottom: 2px solid var(--lavender);
+}
+
+.dashboard-content {
+    flex: 1;
+    padding: 2.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.welcome-box {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border-left: 5px solid var(--lavender);
+}
+
+.welcome-box h2 {
+    color: var(--blue-border);
+    margin-bottom: 0.5rem;
+}
