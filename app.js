@@ -377,29 +377,30 @@ function obtenerContenidoSeccion() {
 
     else if (esAdmin && estadoApp.seccionActiva === "Participantes") {
         if (estadoApp.modoFormularioParticipante) {
+            // ESTRUCTURA SIN ETIQUETA <FORM> - DIV PURO Y BOTÓN AISLADO
             return `
                 <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border: 2px solid var(--blue-border);">
                     <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Alta de Participante</h2>
-                    <div id="formCargarParticipante" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
                         <div class="form-group" style="text-align: left;">
                             <label>Cargar foto (URL)</label>
-                            <input type="url" id="pFoto" required placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="url" id="pFoto" placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Apellido y Nombres</label>
-                            <input type="text" id="pNombre" required placeholder="Ej: Pérez, Juan" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="pNombre" placeholder="Ej: Pérez, Juan" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>DNI</label>
-                            <input type="text" id="pDni" required placeholder="Ej: 35123456" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="pDni" placeholder="Ej: 35123456" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Usuario asignado</label>
-                            <input type="text" id="pUsuario" required placeholder="Ej: JPEREZ" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="pUsuario" placeholder="Ej: JPEREZ" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Contraseña asignada</label>
-                            <input type="password" id="pPass" required placeholder="Contraseña o DNI" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="password" id="pPass" placeholder="Contraseña o DNI" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                             <button type="button" id="btnGuardarParticipanteDirecto" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
@@ -1129,7 +1130,7 @@ function configurarEventosDashboard() {
     const btnCancelarP = document.getElementById("btnCancelarParticipante");
     if (btnCancelarP) btnCancelarP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = false; render(); });
 
-    // EVENTO DIRECTO POR CLIC PARA GUARDAR PARTICIPANTE
+    // EVENTO DIRECTO POR CLIC FUERA DE CUALQUIER FORMULARIO (BOTÓN INDEPENDIENTE)
     const btnGuardarP = document.getElementById("btnGuardarParticipanteDirecto");
     if (btnGuardarP) {
         btnGuardarP.addEventListener("click", async () => {
