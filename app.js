@@ -930,7 +930,7 @@ function obtenerContenidoSeccion() {
         `;
     }
 
-    else if (!esAdmin && estadoApp.seccionActiva === "Talleres") {
+    else if (!esAdmin && estadoApp.seccionActiva === "Mis talleres") {
         return `
             <div style="margin-bottom: 2rem;">
                 <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Talleres Prácticos de Análisis Clínico</h2>
@@ -1077,7 +1077,7 @@ function renderDashboard() {
             <button class="btn-custom" data-seccion="Test de autoevaluación">Test de autoevaluación</button>
             <button class="btn-custom" data-seccion="Mis calificaciones">Mis calificaciones</button>
             <button class="btn-custom" data-seccion="Mi diploma">Mi diploma</button>
-            <button class="btn-custom" data-seccion="Talleres">Talleres</button>
+            <button class="btn-custom" data-seccion="Mis talleres">Mis talleres</button>
         `;
     }
 
