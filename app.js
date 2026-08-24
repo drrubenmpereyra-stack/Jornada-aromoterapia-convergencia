@@ -24,8 +24,9 @@ let estadoApp = {
     usuarioActual: null,
     seccionActiva: "Mis jornadas",
     modoFormularioJornada: false,
-    jornadaEditandoId: null, // Controla si estamos editando una jornada específica
+    jornadaEditandoId: null,
     modoFormularioMaterial: false,
+    materialEditandoId: null,
     modoFormularioParticipante: false,
     jornadasLista: [],
     materialesLista: [],
@@ -341,21 +342,26 @@ function obtenerContenidoSeccion() {
 
     else if (esAdmin && estadoApp.seccionActiva === "Materiales") {
         if (estadoApp.modoFormularioMaterial) {
+            let materialAEditar = null;
+            if (estadoApp.materialEditandoId) {
+                materialAEditar = estadoApp.materialesLista.find(m => m.id === estadoApp.materialEditandoId);
+            }
+
             return `
                 <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border: 2px solid var(--blue-border);">
-                    <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Cargar Nuevo Material</h2>
+                    <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">${materialAEditar ? 'Editar Material Académico' : 'Cargar Nuevo Material'}</h2>
                     <form id="formCargarMaterial" style="display: flex; flex-direction: column; gap: 1rem;">
                         <div class="form-group" style="text-align: left;">
                             <label>Nombre del material</label>
-                            <input type="text" id="mNombre" required placeholder="Ej: Guía clínica..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="mNombre" required value="${materialAEditar ? materialAEditar.nombre : ''}" placeholder="Ej: Guía clínica..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Link de la imagen</label>
-                            <input type="url" id="mImagen" required placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="url" id="mImagen" required value="${materialAEditar ? materialAEditar.imagen : ''}" placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Link del PDF en Google Drive</label>
-                            <input type="url" id="mPdf" required placeholder="https://drive.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="url" id="mPdf" required value="${materialAEditar ? materialAEditar.pdf : ''}" placeholder="https://drive.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                             <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
@@ -385,6 +391,10 @@ function obtenerContenidoSeccion() {
                             <div style="flex: 1;">
                                 <h3 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.15rem;">${m.nombre}</h3>
                                 <a href="${m.pdf}" target="_blank" style="color: #1d3557; font-weight: bold; font-size: 0.9rem;">📄 Ver PDF en Google Drive</a>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn-custom btn-editar-material" data-id="${m.id}" style="background-color: #457b9d !important; padding: 0.4rem 0.8rem; font-size: 0.85rem;">✏️ Editar</button>
+                                <button class="btn-custom btn-eliminar-material" data-id="${m.id}" style="background-color: #d90429 !important; padding: 0.4rem 0.8rem; font-size: 0.85rem;">🗑️ Eliminar</button>
                             </div>
                         </div>
                     `;
@@ -1085,6 +1095,7 @@ function configurarEventosDashboard() {
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.jornadaEditandoId = null;
                 estadoApp.modoFormularioMaterial = false;
+                estadoApp.materialEditandoId = null;
                 estadoApp.modoFormularioParticipante = false;
                 render();
             } else {
@@ -1092,6 +1103,7 @@ function configurarEventosDashboard() {
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.jornadaEditandoId = null;
                 estadoApp.modoFormularioMaterial = false;
+                estadoApp.materialEditandoId = null;
                 estadoApp.modoFormularioParticipante = false;
                 render();
             }
@@ -1140,6 +1152,7 @@ function configurarEventosDashboard() {
         });
     });
 
+    // EVENTOS JORNADAS
     const btnAbrirFormJ = document.getElementById("btnAbrirFormJornada");
     if (btnAbrirFormJ) {
         btnAbrirFormJ.addEventListener("click", () => { 
@@ -1158,7 +1171,6 @@ function configurarEventosDashboard() {
         });
     }
 
-    // Configurar botones de editar jornada
     document.querySelectorAll(".btn-editar-jornada").forEach(btn => {
         btn.addEventListener("click", (e) => {
             const idDoc = e.target.getAttribute("data-id");
@@ -1168,7 +1180,6 @@ function configurarEventosDashboard() {
         });
     });
 
-    // Configurar botones de eliminar jornada
     document.querySelectorAll(".btn-eliminar-jornada").forEach(btn => {
         btn.addEventListener("click", async (e) => {
             const idDoc = e.target.getAttribute("data-id");
@@ -1198,10 +1209,8 @@ function configurarEventosDashboard() {
             try {
                 if (db) {
                     if (estadoApp.jornadaEditandoId) {
-                        // Actualizar jornada existente
                         await updateDoc(doc(db, "jornadas", estadoApp.jornadaEditandoId), datosJornada);
                     } else {
-                        // Crear nueva jornada
                         await addDoc(collection(db, "jornadas"), datosJornada);
                     }
                 }
@@ -1216,25 +1225,74 @@ function configurarEventosDashboard() {
         });
     }
 
+    // EVENTOS MATERIALES
     const btnAbrirFormM = document.getElementById("btnAbrirFormMaterial");
-    if (btnAbrirFormM) btnAbrirFormM.addEventListener("click", () => { estadoApp.modoFormularioMaterial = true; render(); });
+    if (btnAbrirFormM) {
+        btnAbrirFormM.addEventListener("click", () => { 
+            estadoApp.modoFormularioMaterial = true; 
+            estadoApp.materialEditandoId = null; 
+            render(); 
+        });
+    }
+
     const btnCancelarM = document.getElementById("btnCancelarMaterial");
-    if (btnCancelarM) btnCancelarM.addEventListener("click", () => { estadoApp.modoFormularioMaterial = false; render(); });
+    if (btnCancelarM) {
+        btnCancelarM.addEventListener("click", () => { 
+            estadoApp.modoFormularioMaterial = false; 
+            estadoApp.materialEditandoId = null; 
+            render(); 
+        });
+    }
+
+    document.querySelectorAll(".btn-editar-material").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            estadoApp.modoFormularioMaterial = true;
+            estadoApp.materialEditandoId = idDoc;
+            render();
+        });
+    });
+
+    document.querySelectorAll(".btn-eliminar-material").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            if (confirm("¿Está seguro de que desea eliminar este material?")) {
+                try {
+                    await deleteDoc(doc(db, "materiales", idDoc));
+                    await cargarDatosDesdeDB();
+                    render();
+                } catch (err) {
+                    console.error("Error al eliminar material:", err);
+                }
+            }
+        });
+    });
+
     const formCargarM = document.getElementById("formCargarMaterial");
     if (formCargarM) {
         formCargarM.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const nuevoMaterial = {
+            const datosMaterial = {
                 nombre: document.getElementById("mNombre").value.trim(),
                 imagen: document.getElementById("mImagen").value.trim(),
                 pdf: document.getElementById("mPdf").value.trim()
             };
             try {
-                if (db) await addDoc(collection(db, "materiales"), nuevoMaterial);
+                if (db) {
+                    if (estadoApp.materialEditandoId) {
+                        await updateDoc(doc(db, "materiales", estadoApp.materialEditandoId), datosMaterial);
+                    } else {
+                        await addDoc(collection(db, "materiales"), datosMaterial);
+                    }
+                }
                 estadoApp.modoFormularioMaterial = false;
+                estadoApp.materialEditandoId = null;
                 await cargarDatosDesdeDB();
                 render();
-            } catch (error) { console.error(error); alert("Error al guardar material."); }
+            } catch (error) { 
+                console.error(error); 
+                alert("Error al guardar material."); 
+            }
         });
     }
 
