@@ -888,12 +888,22 @@ function obtenerContenidoSeccion() {
     else if (!esAdmin && estadoApp.seccionActiva === "Test de autoevaluación") {
         return `
             <div style="margin-bottom: 2rem;">
-                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Test de Autoevaluación - Jornada 1</h2>
-                <p style="color: #555;">Acceso al protocolo evaluativo externo.</p>
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Tests de Autoevaluación Académica</h2>
+                <p style="color: #555;">Acceso a los protocolos evaluativos oficiales del seminario.</p>
             </div>
-            <div style="background: var(--white); padding: 3rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border: 2px solid var(--blue-border);">
-                <p style="font-size: 1.1rem; color: #333; margin-bottom: 1.5rem;">Haga clic en el siguiente botón para abrir el Test oficial en una pestaña independiente:</p>
-                <a href="https://drrubenmpereyra-stack.github.io/Test1-aromoterapia/" target="_blank" class="btn-custom" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-decoration: none; display: inline-block;">Abrir Test 1 en nueva ventana ➔</a>
+            <div style="display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border: 2px solid var(--blue-border); display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                    <img src="Jornada1.jpg" alt="Jornada 1" style="width: 100%; max-width: 320px; height: 180px; object-fit: cover; border-radius: 6px; border: 2px solid var(--blue-border);">
+                    <h3 style="color: var(--blue-border); font-size: 1.2rem;">Test de Autoevaluación - Jornada 1</h3>
+                    <p style="font-size: 0.95rem; color: #333;">Haga clic en el siguiente botón para abrir el Test oficial en una pestaña independiente:</p>
+                    <a href="https://drrubenmpereyra-stack.github.io/Test1-aromoterapia/" target="_blank" class="btn-custom" style="padding: 0.75rem 1.5rem; font-size: 1rem; text-decoration: none; display: inline-block; margin-top: auto;">Abrir Test 1 en nueva ventana ➔</a>
+                </div>
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border: 2px solid var(--blue-border); display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                    <img src="Jornada2.jpg" alt="Jornada 2" style="width: 100%; max-width: 320px; height: 180px; object-fit: cover; border-radius: 6px; border: 2px solid var(--blue-border);" onerror="this.src='https://via.placeholder.com/320x180?text=Jornada+2'">
+                    <h3 style="color: var(--blue-border); font-size: 1.2rem;">Test de Autoevaluación - Jornada 2</h3>
+                    <p style="font-size: 0.95rem; color: #333;">Haga clic en el siguiente botón para abrir el Test oficial en una pestaña independiente:</p>
+                    <a href="#" target="_blank" class="btn-custom" style="padding: 0.75rem 1.5rem; font-size: 1rem; text-decoration: none; display: inline-block; margin-top: auto; opacity: 0.8;">Abrir Test 2 en nueva ventana ➔</a>
+                </div>
             </div>
         `;
     }
