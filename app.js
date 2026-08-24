@@ -1,5 +1,5 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // Credenciales oficiales de su proyecto Firebase
 const firebaseConfig = {
@@ -14,10 +14,9 @@ const firebaseConfig = {
 let db = null;
 try {
     const app = initializeApp(firebaseConfig);
-    // Inicialización corregida para evitar el error de base de datos no encontrada
     db = getFirestore(app);
 } catch (err) {
-    console.error("Error al conectar con Firebase:", err);
+    console.error("Error crítico al inicializar Firebase:", err);
 }
 
 let estadoApp = {
@@ -133,7 +132,6 @@ function configurarEventosLogin() {
             }
             
             await cargarDatosDesdeDB();
-
             render();
             reproducirAudioIntro();
         } else {
@@ -1144,13 +1142,17 @@ function configurarEventosDashboard() {
                 restringido: false
             };
             try {
-                if (db) await addDoc(collection(db, "usuarios"), nuevoParticipante);
+                if (!db) {
+                    alert("Error: La base de datos no está conectada.");
+                    return;
+                }
+                await addDoc(collection(db, "usuarios"), nuevoParticipante);
                 estadoApp.modoFormularioParticipante = false;
                 await cargarDatosDesdeDB();
                 render();
             } catch (error) { 
-                console.error(error); 
-                alert("Error al registrar participante."); 
+                console.error("Error detallado al registrar participante:", error); 
+                alert("Error al registrar participante: " + error.message); 
             }
         });
     }
