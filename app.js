@@ -394,10 +394,6 @@ function obtenerContenidoSeccion() {
                             <input type="text" id="pNombre" required placeholder="Ej: Pérez, Juan..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
-                            <label>DNI</label>
-                            <input type="text" id="pDni" required placeholder="Número de DNI" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
-                        </div>
-                        <div class="form-group" style="text-align: left;">
                             <label>Usuario Asignado</label>
                             <input type="text" id="pUsuario" required placeholder="Ej: P2" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
@@ -406,7 +402,7 @@ function obtenerContenidoSeccion() {
                             <input type="text" id="pPass" required placeholder="Ej: AB12" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
-                            <label>Link de Foto de Perfil (Google Drive)</label>
+                            <label>Link de Foto de Perfil</label>
                             <input type="url" id="pFoto" placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div style="display: flex; gap: 1rem; margin-top: 1rem;">
@@ -434,9 +430,7 @@ function obtenerContenidoSeccion() {
                     <table style="width: 100%; border-collapse: collapse; text-align: left;">
                         <thead>
                             <tr style="border-bottom: 2px solid var(--blue-border); color: var(--blue-border);">
-                                <th style="padding: 0.75rem;">Foto</th>
                                 <th style="padding: 0.75rem;">Apellido y Nombres</th>
-                                <th style="padding: 0.75rem;">DNI</th>
                                 <th style="padding: 0.75rem;">Usuario</th>
                                 <th style="padding: 0.75rem;">Contraseña</th>
                                 <th style="padding: 0.75rem; text-align: center;">Acción</th>
@@ -447,9 +441,7 @@ function obtenerContenidoSeccion() {
                 estadoApp.participantesLista.forEach(item => {
                     htmlP += `
                         <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 0.75rem;"><img src="${item.foto || 'https://via.placeholder.com/40'}" alt="Foto" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/40'"></td>
                             <td style="padding: 0.75rem; font-weight: 600;">${item.apellidoNombres}</td>
-                            <td style="padding: 0.75rem;">${item.dni || '-'}</td>
                             <td style="padding: 0.75rem;">${item.usuarioAsignado}</td>
                             <td style="padding: 0.75rem; font-family: monospace;">${item.passAsignada}</td>
                             <td style="padding: 0.75rem; text-align: center;">
@@ -1094,7 +1086,6 @@ function configurarEventosDashboard() {
             e.preventDefault();
             const nuevoParticipante = {
                 apellidoNombres: document.getElementById("pNombre").value.trim(),
-                dni: document.getElementById("pDni").value.trim(),
                 usuarioAsignado: document.getElementById("pUsuario").value.trim(),
                 passAsignada: document.getElementById("pPass").value.trim(),
                 foto: document.getElementById("pFoto").value.trim() || "https://via.placeholder.com/80",
