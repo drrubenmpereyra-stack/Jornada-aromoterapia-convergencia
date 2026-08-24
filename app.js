@@ -22,10 +22,9 @@ try {
 let estadoApp = {
     pantalla: "login",
     usuarioActual: null,
-    seccionActiva: "Jornadas",
+    seccionActiva: "Mis jornadas",
     modoFormularioJornada: false,
     modoFormularioMaterial: false,
-    modoFormularioParticipante: false,
     jornadasLista: [],
     materialesLista: [],
     participantesLista: [],
@@ -61,11 +60,11 @@ function renderLogin() {
                 <form id="loginForm">
                     <div class="form-group">
                         <label for="usuario">Usuario</label>
-                        <input type="text" id="usuario" required placeholder="Ingrese su usuario">
+                        <input type="text" id="usuario" required placeholder="Ingrese su usuario (ej: P1)">
                     </div>
                     <div class="form-group">
                         <label for="password">Contraseña</label>
-                        <input type="password" id="password" required placeholder="Ingrese su contraseña">
+                        <input type="password" id="password" required placeholder="Ingrese su contraseña (ej: XX)">
                     </div>
                     <button type="submit" class="btn-custom btn-submit">Ingresar</button>
                     <div id="errorMsg" class="error-msg"></div>
@@ -90,7 +89,16 @@ function configurarEventosLogin() {
         let usuarioEncontrado = null;
         let accesoRestringido = false;
 
-        if (uInput === "DRPEREYRA" && pInput === "235689") {
+        // INGRESO DIRECTO POR CÓDIGO (USUARIO DE PRUEBA)
+        if (uInput === "P1" && pInput === "XX") {
+            usuarioEncontrado = { 
+                id: "test-user-id", 
+                user: "P1", 
+                role: "participant", 
+                nombre: "Participante de Prueba (P1)", 
+                foto: "https://via.placeholder.com/80" 
+            };
+        } else if (uInput === "DRPEREYRA" && pInput === "235689") {
             usuarioEncontrado = { user: "DRPEREYRA", role: "admin", nombre: "Dr. y Mgter Rubén M. Pereyra (Administrador)" };
         } else {
             try {
@@ -376,78 +384,12 @@ function obtenerContenidoSeccion() {
     }
 
     else if (esAdmin && estadoApp.seccionActiva === "Participantes") {
-        if (estadoApp.modoFormularioParticipante) {
-            // ESTRUCTURA SIN ETIQUETA <FORM> - DIV PURO Y BOTÓN AISLADO
-            return `
-                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border: 2px solid var(--blue-border);">
-                    <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Alta de Participante</h2>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div class="form-group" style="text-align: left;">
-                            <label>Cargar foto (URL)</label>
-                            <input type="url" id="pFoto" placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
-                        </div>
-                        <div class="form-group" style="text-align: left;">
-                            <label>Apellido y Nombres</label>
-                            <input type="text" id="pNombre" placeholder="Ej: Pérez, Juan" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
-                        </div>
-                        <div class="form-group" style="text-align: left;">
-                            <label>DNI</label>
-                            <input type="text" id="pDni" placeholder="Ej: 35123456" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
-                        </div>
-                        <div class="form-group" style="text-align: left;">
-                            <label>Usuario asignado</label>
-                            <input type="text" id="pUsuario" placeholder="Ej: JPEREZ" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
-                        </div>
-                        <div class="form-group" style="text-align: left;">
-                            <label>Contraseña asignada</label>
-                            <input type="password" id="pPass" placeholder="Contraseña o DNI" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
-                        </div>
-                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                            <button type="button" id="btnGuardarParticipanteDirecto" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
-                            <button type="button" id="btnCancelarParticipante" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important;">Cancelar</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            let htmlP = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
-                    <div>
-                        <h2 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.6rem;">Gestión de Participantes</h2>
-                        <p style="color: #555;">Control de alumnos y credenciales.</p>
-                    </div>
-                    <button id="btnAbrirFormParticipante" class="btn-custom">➕ Cargar Participante</button>
-                </div>
-                <div style="display: grid; gap: 1.5rem;">
-            `;
-            if (estadoApp.participantesLista.length === 0) {
-                htmlP += `<p style="color: #666; background: var(--white); padding: 1.5rem; border-radius: 6px;">No hay participantes registrados.</p>`;
-            } else {
-                estadoApp.participantesLista.forEach(p => {
-                    const estRestr = p.restringido === true;
-                    htmlP += `
-                        <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid ${estRestr ? '#d90429' : 'var(--lavender)'}; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
-                            <img src="${p.foto}" alt="${p.apellidoNombres}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid var(--blue-border);">
-                            <div style="flex: 1;">
-                                <h3 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.15rem;">${p.apellidoNombres}</h3>
-                                <p style="font-size: 0.9rem; color: #555;">DNI: ${p.dni} | Usuario: <b>${p.usuarioAsignado}</b></p>
-                                <p style="font-size: 0.85rem; color: ${estRestr ? '#d90429' : '#2b9348'}; font-weight: bold; margin-top: 0.3rem;">
-                                    ${estRestr ? '🔴 Acceso Restringido' : '🟢 Acceso Activo'}
-                                </p>
-                            </div>
-                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                <button class="btn-custom btn-restringir" data-id="${p.id}" data-estado="${estRestr ? 'activo' : 'restringido'}" style="background-color: ${estRestr ? '#2b9348' : '#e0a96d'} !important; font-size: 0.85rem;">
-                                    ${estRestr ? 'Habilitar' : 'Restringir'}
-                                </button>
-                                <button class="btn-custom btn-eliminar-participante" data-id="${p.id}" style="background-color: #d90429 !important; font-size: 0.85rem;">Eliminar</button>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-            htmlP += `</div>`;
-            return htmlP;
-        }
+        return `
+            <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center;">
+                <h2 style="color: var(--blue-border); margin-bottom: 1rem;">Gestión de Participantes deshabilitada</h2>
+                <p style="color: #666;">Sección eliminada del sistema a petición de la administración.</p>
+            </div>
+        `;
     }
 
     else if (esAdmin && estadoApp.seccionActiva === "Asistencia") {
@@ -1066,13 +1008,11 @@ function configurarEventosDashboard() {
                 estadoApp.seccionActiva = "Jornadas";
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.modoFormularioMaterial = false;
-                estadoApp.modoFormularioParticipante = false;
                 render();
             } else {
                 estadoApp.seccionActiva = seccion;
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.modoFormularioMaterial = false;
-                estadoApp.modoFormularioParticipante = false;
                 render();
             }
         });
@@ -1123,73 +1063,6 @@ function configurarEventosDashboard() {
             } catch (error) { console.error(error); alert("Error al guardar material."); }
         });
     }
-
-    const btnAbrirFormP = document.getElementById("btnAbrirFormParticipante");
-    if (btnAbrirFormP) btnAbrirFormP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = true; render(); });
-    
-    const btnCancelarP = document.getElementById("btnCancelarParticipante");
-    if (btnCancelarP) btnCancelarP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = false; render(); });
-
-    // EVENTO DIRECTO POR CLIC FUERA DE CUALQUIER FORMULARIO (BOTÓN INDEPENDIENTE)
-    const btnGuardarP = document.getElementById("btnGuardarParticipanteDirecto");
-    if (btnGuardarP) {
-        btnGuardarP.addEventListener("click", async () => {
-            const fotoInput = document.getElementById("pFoto").value.trim();
-            const nombreInput = document.getElementById("pNombre").value.trim();
-            const dniInput = document.getElementById("pDni").value.trim();
-            const usuarioInput = document.getElementById("pUsuario").value.trim();
-            const passInput = document.getElementById("pPass").value.trim();
-
-            if (!nombreInput || !dniInput || !usuarioInput || !passInput) {
-                alert("Por favor, complete todos los campos obligatorios.");
-                return;
-            }
-
-            const nuevoParticipante = {
-                foto: fotoInput,
-                apellidoNombres: nombreInput,
-                dni: dniInput,
-                usuarioAsignado: usuarioInput,
-                passAsignada: passInput,
-                restringido: false
-            };
-
-            try {
-                if (!db) {
-                    alert("Error crítico: La base de datos no está inicializada.");
-                    return;
-                }
-                await addDoc(collection(db, "usuarios"), nuevoParticipante);
-                estadoApp.modoFormularioParticipante = false;
-                await cargarDatosDesdeDB();
-                render();
-                alert("¡Participante cargado con éxito!");
-            } catch (error) {
-                console.error("Error al registrar participante en Firestore:", error);
-                alert("Error al registrar participante: " + error.message);
-            }
-        });
-    }
-
-    document.querySelectorAll(".btn-eliminar-participante").forEach(btn => {
-        btn.addEventListener("click", async (e) => {
-            const idDoc = e.target.getAttribute("data-id");
-            if (confirm("¿Está seguro de eliminar este participante?")) {
-                try { await deleteDoc(doc(db, "usuarios", idDoc)); await cargarDatosDesdeDB(); render(); } catch (err) { console.error(err); }
-            }
-        });
-    });
-
-    document.querySelectorAll(".btn-restringir").forEach(btn => {
-        btn.addEventListener("click", async (e) => {
-            const idDoc = e.target.getAttribute("data-id");
-            const estadoActual = e.target.getAttribute("data-estado");
-            try {
-                await updateDoc(doc(db, "usuarios", idDoc), { restringido: (estadoActual === "restringido") });
-                await cargarDatosDesdeDB(); render();
-            } catch (err) { console.error(err); }
-        });
-    });
 
     const formCargarAsis = document.getElementById("formCargarAsistencia");
     if (formCargarAsis) {
