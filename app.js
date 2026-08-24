@@ -380,7 +380,7 @@ function obtenerContenidoSeccion() {
             return `
                 <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border: 2px solid var(--blue-border);">
                     <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Alta de Participante</h2>
-                    <form id="formCargarParticipante" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div id="formCargarParticipante" style="display: flex; flex-direction: column; gap: 1rem;">
                         <div class="form-group" style="text-align: left;">
                             <label>Cargar foto (URL)</label>
                             <input type="url" id="pFoto" required placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
@@ -402,10 +402,10 @@ function obtenerContenidoSeccion() {
                             <input type="password" id="pPass" required placeholder="Contraseña o DNI" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                            <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
+                            <button type="button" id="btnGuardarParticipanteDirecto" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
                             <button type="button" id="btnCancelarParticipante" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important;">Cancelar</button>
                         </div>
-                    </form>
+                    </div>
                 </div>
             `;
         } else {
@@ -1129,6 +1129,47 @@ function configurarEventosDashboard() {
     const btnCancelarP = document.getElementById("btnCancelarParticipante");
     if (btnCancelarP) btnCancelarP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = false; render(); });
 
+    // EVENTO DIRECTO POR CLIC PARA GUARDAR PARTICIPANTE
+    const btnGuardarP = document.getElementById("btnGuardarParticipanteDirecto");
+    if (btnGuardarP) {
+        btnGuardarP.addEventListener("click", async () => {
+            const fotoInput = document.getElementById("pFoto").value.trim();
+            const nombreInput = document.getElementById("pNombre").value.trim();
+            const dniInput = document.getElementById("pDni").value.trim();
+            const usuarioInput = document.getElementById("pUsuario").value.trim();
+            const passInput = document.getElementById("pPass").value.trim();
+
+            if (!nombreInput || !dniInput || !usuarioInput || !passInput) {
+                alert("Por favor, complete todos los campos obligatorios.");
+                return;
+            }
+
+            const nuevoParticipante = {
+                foto: fotoInput,
+                apellidoNombres: nombreInput,
+                dni: dniInput,
+                usuarioAsignado: usuarioInput,
+                passAsignada: passInput,
+                restringido: false
+            };
+
+            try {
+                if (!db) {
+                    alert("Error crítico: La base de datos no está inicializada.");
+                    return;
+                }
+                await addDoc(collection(db, "usuarios"), nuevoParticipante);
+                estadoApp.modoFormularioParticipante = false;
+                await cargarDatosDesdeDB();
+                render();
+                alert("¡Participante cargado con éxito!");
+            } catch (error) {
+                console.error("Error al registrar participante en Firestore:", error);
+                alert("Error al registrar participante: " + error.message);
+            }
+        });
+    }
+
     document.querySelectorAll(".btn-eliminar-participante").forEach(btn => {
         btn.addEventListener("click", async (e) => {
             const idDoc = e.target.getAttribute("data-id");
@@ -1242,36 +1283,5 @@ function configurarEventosDashboard() {
         });
     });
 }
-
-// ESCUCHADOR GLOBAL DE SUBMIT (Solución definitiva para formularios dinámicos)
-document.addEventListener("submit", async (e) => {
-    if (e.target && e.target.id === "formCargarParticipante") {
-        e.preventDefault();
-        
-        const nuevoParticipante = {
-            foto: document.getElementById("pFoto").value.trim(),
-            apellidoNombres: document.getElementById("pNombre").value.trim(),
-            dni: document.getElementById("pDni").value.trim(),
-            usuarioAsignado: document.getElementById("pUsuario").value.trim(),
-            passAsignada: document.getElementById("pPass").value.trim(),
-            restringido: false
-        };
-
-        try {
-            if (!db) {
-                alert("Error crítico: La base de datos no está inicializada.");
-                return;
-            }
-            await addDoc(collection(db, "usuarios"), nuevoParticipante);
-            estadoApp.modoFormularioParticipante = false;
-            await cargarDatosDesdeDB();
-            render();
-            alert("¡Participante cargado con éxito!");
-        } catch (error) {
-            console.error("Error al registrar participante en Firestore:", error);
-            alert("Error al registrar participante: " + error.message);
-        }
-    }
-});
 
 window.addEventListener("DOMContentLoaded", render);
