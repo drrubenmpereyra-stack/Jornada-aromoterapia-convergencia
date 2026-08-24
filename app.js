@@ -30,7 +30,8 @@ let estadoApp = {
     materialesLista: [],
     participantesLista: [],
     asistenciaLista: [],
-    pagosLista: []
+    pagosLista: [],
+    diplomasLista: []
 };
 
 function render() {
@@ -129,7 +130,6 @@ function configurarEventosLogin() {
                 estadoApp.seccionActiva = "Jornadas";
             }
             
-            // Precarga inicial única
             await cargarDatosDesdeDB();
 
             render();
@@ -200,13 +200,13 @@ async function cargarDatosDesdeDB() {
     try {
         if (!db) return;
         
-        // Ejecutamos todas las peticiones a la nube en paralelo para máxima velocidad
-        const [snapJornadas, snapMateriales, snapParticipantes, snapAsistencia, snapPagos] = await Promise.all([
+        const [snapJornadas, snapMateriales, snapParticipantes, snapAsistencia, snapPagos, snapDiplomas] = await Promise.all([
             getDocs(collection(db, "jornadas")),
             getDocs(collection(db, "materiales")),
             getDocs(collection(db, "usuarios")),
             getDocs(collection(db, "asistencia")),
-            getDocs(collection(db, "pagos"))
+            getDocs(collection(db, "pagos")),
+            getDocs(collection(db, "diplomas"))
         ]);
 
         let listaJ = [];
@@ -234,6 +234,10 @@ async function cargarDatosDesdeDB() {
         snapPagos.forEach((doc) => { listaPag.push({ id: doc.id, ...doc.data() }); });
         estadoApp.pagosLista = listaPag;
 
+        let listaDip = [];
+        snapDiplomas.forEach((doc) => { listaDip.push({ id: doc.id, ...doc.data() }); });
+        estadoApp.diplomasLista = listaDip;
+
     } catch (e) {
         console.error("Error al obtener datos en paralelo:", e);
     }
@@ -242,6 +246,7 @@ async function cargarDatosDesdeDB() {
 function obtenerContenidoSeccion() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
 
+    // 1. JORNADAS (Admin)
     if (esAdmin && estadoApp.seccionActiva === "Jornadas") {
         if (estadoApp.modoFormularioJornada) {
             return `
@@ -310,6 +315,7 @@ function obtenerContenidoSeccion() {
         }
     } 
 
+    // 2. MATERIALES (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Materiales") {
         if (estadoApp.modoFormularioMaterial) {
             return `
@@ -366,6 +372,7 @@ function obtenerContenidoSeccion() {
         }
     }
 
+    // 3. PARTICIPANTES (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Participantes") {
         if (estadoApp.modoFormularioParticipante) {
             return `
@@ -440,6 +447,7 @@ function obtenerContenidoSeccion() {
         }
     }
 
+    // 4. ASISTENCIA (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Asistencia") {
         let optionsSelect = `<option value="">Seleccione un participante</option>`;
         estadoApp.participantesLista.forEach(p => {
@@ -515,6 +523,7 @@ function obtenerContenidoSeccion() {
         return htmlAsistenciaAdmin;
     }
 
+    // 5. PAGOS (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Pagos") {
         let optionsSelectP = `<option value="">Seleccione un participante</option>`;
         estadoApp.participantesLista.forEach(p => {
@@ -605,6 +614,79 @@ function obtenerContenidoSeccion() {
         return htmlPagosAdmin;
     }
 
+    // 6. DIPLOMAS (Admin)
+    else if (esAdmin && estadoApp.seccionActiva === "Diplomas") {
+        let optionsSelectDip = `<option value="">Seleccione un participante</option>`;
+        estadoApp.participantesLista.forEach(p => {
+            optionsSelectDip += `<option value="${p.apellidoNombres}">${p.apellidoNombres}</option>`;
+        });
+
+        let htmlDiplomasAdmin = `
+            <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 2rem; border: 2px solid var(--blue-border);">
+                <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Emisión de Diplomas</h2>
+                <form id="formCargarDiploma" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: end;">
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Apellido y Nombres</label>
+                        <select id="dipParticipante" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            ${optionsSelectDip}
+                        </select>
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Fecha de Emisión</label>
+                        <input type="date" id="dipFecha" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Horas Cátedra / Condición</label>
+                        <input type="text" id="dipHoras" required placeholder="Ej: 40 Horas - Aprobado" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin:0;">
+                        <label>Código de Validación / Folio</label>
+                        <input type="text" id="dipCodigo" required placeholder="Ej: FOLIO-2026-001" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                    </div>
+                    <button type="submit" class="btn-custom" style="padding: 0.75rem; height: 44px; grid-column: 1 / -1;">Emitir Diploma</button>
+                </form>
+            </div>
+
+            <h2 style="color: var(--blue-border); margin-bottom: 1rem; font-size: 1.4rem;">Diplomas Emitidos</h2>
+            <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        `;
+
+        if (estadoApp.diplomasLista.length === 0) {
+            htmlDiplomasAdmin += `<p style="color: #666;">No hay diplomas emitidos en el sistema.</p>`;
+        } else {
+            htmlDiplomasAdmin += `
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--blue-border); color: var(--blue-border);">
+                            <th style="padding: 0.75rem;">Participante</th>
+                            <th style="padding: 0.75rem;">Fecha</th>
+                            <th style="padding: 0.75rem;">Detalle / Horas</th>
+                            <th style="padding: 0.75rem;">Código</th>
+                            <th style="padding: 0.75rem; text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            estadoApp.diplomasLista.forEach(item => {
+                htmlDiplomasAdmin += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 0.75rem; font-weight: 600;">${item.participante}</td>
+                        <td style="padding: 0.75rem;">${item.fecha}</td>
+                        <td style="padding: 0.75rem;">${item.horas}</td>
+                        <td style="padding: 0.75rem; font-family: monospace; font-weight: bold;">${item.codigo}</td>
+                        <td style="padding: 0.75rem; text-align: center;">
+                            <button class="btn-custom btn-eliminar-diploma" data-id="${item.id}" style="background-color: #d90429 !important; padding: 0.4rem 0.8rem; font-size: 0.85rem;">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            htmlDiplomasAdmin += `</tbody></table>`;
+        }
+        htmlDiplomasAdmin += `</div>`;
+        return htmlDiplomasAdmin;
+    }
+
+    // 7. VISTA PARTICIPANTE: "Mis jornadas"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
         let htmlMisJ = `
             <div style="margin-bottom: 2rem;">
@@ -634,6 +716,7 @@ function obtenerContenidoSeccion() {
         return htmlMisJ;
     } 
 
+    // 8. VISTA PARTICIPANTE: "Mis materiales"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis materiales") {
         let htmlMisM = `
             <div style="margin-bottom: 2rem;">
@@ -661,6 +744,7 @@ function obtenerContenidoSeccion() {
         return htmlMisM;
     }
 
+    // 9. VISTA PARTICIPANTE: "Mi asistencia"
     else if (!esAdmin && estadoApp.seccionActiva === "Mi asistencia") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misAsistencias = estadoApp.asistenciaLista.filter(a => a.participante === nombreParticipante);
@@ -703,6 +787,7 @@ function obtenerContenidoSeccion() {
         return htmlMiAsis;
     }
 
+    // 10. VISTA PARTICIPANTE: "Mis pagos"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis pagos") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misPagos = estadoApp.pagosLista.filter(p => p.participante === nombreParticipante);
@@ -746,6 +831,53 @@ function obtenerContenidoSeccion() {
         }
         htmlMiPago += `</div>`;
         return htmlMiPago;
+    }
+
+    // 11. VISTA PARTICIPANTE: "Mi diploma"
+    else if (!esAdmin && estadoApp.seccionActiva === "Mi diploma") {
+        const nombreParticipante = estadoApp.usuarioActual.nombre;
+        const miDiploma = estadoApp.diplomasLista.find(d => d.participante === nombreParticipante);
+
+        let htmlMiDip = `
+            <div style="margin-bottom: 2rem;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Mi Certificado / Diploma</h2>
+                <p style="color: #555;">Certificación oficial emitida por la dirección del seminario.</p>
+            </div>
+        `;
+
+        if (!miDiploma) {
+            htmlMiDip += `
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center;">
+                    <p style="color: #666; font-size: 1.1rem;">Su diploma aún no ha sido emitido o está pendiente de validación final por administración.</p>
+                </div>
+            `;
+        } else {
+            htmlMiDip += `
+                <div style="background: var(--white); padding: 3rem; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); border: 8px double var(--blue-border); text-align: center; max-width: 800px; margin: 0 auto; position: relative;">
+                    <img src="Logotipo.jpg" alt="Logo" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; margin-bottom: 1rem; border: 2px solid var(--blue-border);">
+                    <h3 style="color: var(--blue-border); font-size: 1.4rem; font-family: serif; letter-spacing: 1px; margin-bottom: 0.5rem;">SEMINARIO DE AROMATERAPIA EN PSICOTERAPIA FOCALIZADA Y NEUROCIENCIAS</h3>
+                    <p style="font-size: 0.95rem; color: #555; margin-bottom: 2rem;">Otorgado a:</p>
+                    <h1 style="font-size: 2rem; color: var(--blue-border); border-bottom: 2px solid var(--lavender); display: inline-block; padding-bottom: 0.5rem; margin-bottom: 2rem; font-family: serif;">${miDiploma.participante}</h1>
+                    <p style="font-size: 1.1rem; line-height: 1.6; color: #333; margin-bottom: 2.5rem; max-width: 650px; margin-left: auto; margin-right: auto;">
+                        Por haber completado satisfactoriamente los requisitos académicos del seminario con una exigencia de <b>${miDiploma.horas}</b>, llevado a cabo en el ciclo lectivo 2026.
+                    </p>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 3rem; padding: 0 2rem; flex-wrap: wrap; gap: 2rem;">
+                        <div style="text-align: left;">
+                            <p style="font-size: 0.85rem; color: #666; margin: 0;">Fecha de Emisión: <b>${miDiploma.fecha}</b></p>
+                            <p style="font-size: 0.85rem; color: #666; margin: 0;">Folio / Código: <b>${miDiploma.codigo}</b></p>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-family: serif; font-size: 1.2rem; font-style: italic; color: #1d3557; margin-bottom: 0.3rem;">Dr. Rubén M. Pereyra</div>
+                            <div style="border-top: 1px solid #333; width: 180px; padding-top: 0.3rem; font-size: 0.85rem; font-weight: bold; color: #555;">Director y Mgter</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button onclick="window.print()" class="btn-custom" style="padding: 0.75rem 2rem; font-size: 1rem;">🖨️ Imprimir / Guardar como PDF</button>
+                </div>
+            `;
+        }
+        return htmlMiDip;
     }
 
     else {
@@ -829,13 +961,12 @@ function configurarEventosDashboard() {
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.modoFormularioMaterial = false;
                 estadoApp.modoFormularioParticipante = false;
-                // Cambio inmediato utilizando la caché local en memoria (¡velocidad instantánea!)
                 render();
             }
         });
     });
 
-    // Eventos de Jornadas
+    // Jornadas
     const btnAbrirFormJ = document.getElementById("btnAbrirFormJornada");
     if (btnAbrirFormJ) btnAbrirFormJ.addEventListener("click", () => { estadoApp.modoFormularioJornada = true; render(); });
     const btnCancelarJ = document.getElementById("btnCancelarJornada");
@@ -860,7 +991,7 @@ function configurarEventosDashboard() {
         });
     }
 
-    // Eventos de Materiales
+    // Materiales
     const btnAbrirFormM = document.getElementById("btnAbrirFormMaterial");
     if (btnAbrirFormM) btnAbrirFormM.addEventListener("click", () => { estadoApp.modoFormularioMaterial = true; render(); });
     const btnCancelarM = document.getElementById("btnCancelarMaterial");
@@ -883,7 +1014,7 @@ function configurarEventosDashboard() {
         });
     }
 
-    // Eventos de Participantes
+    // Participantes
     const btnAbrirFormP = document.getElementById("btnAbrirFormParticipante");
     if (btnAbrirFormP) btnAbrirFormP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = true; render(); });
     const btnCancelarP = document.getElementById("btnCancelarParticipante");
@@ -929,7 +1060,7 @@ function configurarEventosDashboard() {
         });
     });
 
-    // Evento Carga de Asistencia
+    // Asistencia
     const formCargarAsis = document.getElementById("formCargarAsistencia");
     if (formCargarAsis) {
         formCargarAsis.addEventListener("submit", async (e) => {
@@ -955,7 +1086,7 @@ function configurarEventosDashboard() {
         });
     });
 
-    // Evento Carga de Pagos
+    // Pagos
     const formCargarPago = document.getElementById("formCargarPago");
     if (formCargarPago) {
         formCargarPago.addEventListener("submit", async (e) => {
@@ -980,6 +1111,32 @@ function configurarEventosDashboard() {
         btn.addEventListener("click", async (e) => {
             const idDoc = e.target.getAttribute("data-id");
             try { await deleteDoc(doc(db, "pagos", idDoc)); await cargarDatosDesdeDB(); render(); } catch (err) { console.error(err); }
+        });
+    });
+
+    // Diplomas
+    const formCargarDiploma = document.getElementById("formCargarDiploma");
+    if (formCargarDiploma) {
+        formCargarDiploma.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nuevoDiploma = {
+                participante: document.getElementById("dipParticipante").value,
+                fecha: document.getElementById("dipFecha").value,
+                horas: document.getElementById("dipHoras").value.trim(),
+                codigo: document.getElementById("dipCodigo").value.trim()
+            };
+            try {
+                if (db) await addDoc(collection(db, "diplomas"), nuevoDiploma);
+                await cargarDatosDesdeDB();
+                render();
+            } catch (error) { console.error(error); alert("Error al emitir diploma."); }
+        });
+    }
+
+    document.querySelectorAll(".btn-eliminar-diploma").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            try { await deleteDoc(doc(db, "diplomas", idDoc)); await cargarDatosDesdeDB(); render(); } catch (err) { console.error(err); }
         });
     });
 }
