@@ -1140,11 +1140,13 @@ function configurarEventosDashboard() {
         });
     }
 
-    // Participantes
+    // Participantes (Con procesamiento correcto del formulario)
     const btnAbrirFormP = document.getElementById("btnAbrirFormParticipante");
     if (btnAbrirFormP) btnAbrirFormP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = true; render(); });
+    
     const btnCancelarP = document.getElementById("btnCancelarParticipante");
     if (btnCancelarP) btnCancelarP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = false; render(); });
+    
     const formCargarP = document.getElementById("formCargarParticipante");
     if (formCargarP) {
         formCargarP.addEventListener("submit", async (e) => {
@@ -1162,7 +1164,10 @@ function configurarEventosDashboard() {
                 estadoApp.modoFormularioParticipante = false;
                 await cargarDatosDesdeDB();
                 render();
-            } catch (error) { console.error(error); alert("Error al registrar participante."); }
+            } catch (error) { 
+                console.error(error); 
+                alert("Error al registrar participante."); 
+            }
         });
     }
 
