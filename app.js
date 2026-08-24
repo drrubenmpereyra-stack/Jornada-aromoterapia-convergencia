@@ -31,7 +31,8 @@ let estadoApp = {
     participantesLista: [],
     asistenciaLista: [],
     pagosLista: [],
-    diplomasLista: []
+    diplomasLista: [],
+    resultadosTestsLista: []
 };
 
 function render() {
@@ -200,13 +201,14 @@ async function cargarDatosDesdeDB() {
     try {
         if (!db) return;
         
-        const [snapJornadas, snapMateriales, snapParticipantes, snapAsistencia, snapPagos, snapDiplomas] = await Promise.all([
+        const [snapJornadas, snapMateriales, snapParticipantes, snapAsistencia, snapPagos, snapDiplomas, snapTests] = await Promise.all([
             getDocs(collection(db, "jornadas")),
             getDocs(collection(db, "materiales")),
             getDocs(collection(db, "usuarios")),
             getDocs(collection(db, "asistencia")),
             getDocs(collection(db, "pagos")),
-            getDocs(collection(db, "diplomas"))
+            getDocs(collection(db, "diplomas")),
+            getDocs(collection(db, "resultados_tests"))
         ]);
 
         let listaJ = [];
@@ -237,6 +239,10 @@ async function cargarDatosDesdeDB() {
         let listaDip = [];
         snapDiplomas.forEach((doc) => { listaDip.push({ id: doc.id, ...doc.data() }); });
         estadoApp.diplomasLista = listaDip;
+
+        let listaTests = [];
+        snapTests.forEach((doc) => { listaTests.push({ id: doc.id, ...doc.data() }); });
+        estadoApp.resultadosTestsLista = listaTests;
 
     } catch (e) {
         console.error("Error al obtener datos en paralelo:", e);
@@ -614,7 +620,57 @@ function obtenerContenidoSeccion() {
         return htmlPagosAdmin;
     }
 
-    // 6. DIPLOMAS (Admin)
+    // 6. AUDITORÍA EVALUATIVA (Admin)
+    else if (esAdmin && estadoApp.seccionActiva === "Auditoría Evaluativa") {
+        let htmlAudit = `
+            <div style="margin-bottom: 2rem;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Auditoría Evaluativa de Test y Talleres</h2>
+                <p style="color: #555;">Supervisión, marcado y habilitación de calificaciones para los participantes.</p>
+            </div>
+            <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        `;
+
+        if (estadoApp.resultadosTestsLista.length === 0) {
+            htmlAudit += `<p style="color: #666;">No hay protocolos de test o talleres enviados por los participantes.</p>`;
+        } else {
+            htmlAudit += `
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--blue-border); color: var(--blue-border);">
+                            <th style="padding: 0.75rem;">Participante / Usuario</th>
+                            <th style="padding: 0.75rem;">Evaluación / Protocolo</th>
+                            <th style="padding: 0.75rem;">Puntaje</th>
+                            <th style="padding: 0.75rem; text-align: center;">Tilde Auditoría</th>
+                            <th style="padding: 0.75rem; text-align: center;">Estado Administrador</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            estadoApp.resultadosTestsLista.forEach(item => {
+                const corregido = item.corregido === true;
+                htmlAudit += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 0.75rem; font-weight: 600;">${item.participante || 'Participante Aula'}</td>
+                        <td style="padding: 0.75rem;">${item.test}</td>
+                        <td style="padding: 0.75rem; font-weight: bold; color: var(--blue-border);">${item.score} / 100 pts</td>
+                        <td style="padding: 0.75rem; text-align: center;">
+                            <input type="checkbox" class="check-auditoria" data-id="${item.id}" ${corregido ? 'checked' : ''} style="width: 20px; height: 20px; cursor: pointer;">
+                        </td>
+                        <td style="padding: 0.75rem; text-align: center;">
+                            <span style="background: ${corregido ? '#d8f3dc' : '#ffe5d9'}; color: ${corregido ? '#2b9348' : '#d90429'}; padding: 0.3rem 0.8rem; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+                                ${corregido ? 'Corregido' : 'Pendiente de Auditoría'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            htmlAudit += `</tbody></table>`;
+        }
+        htmlAudit += `</div>`;
+        return htmlAudit;
+    }
+
+    // 7. DIPLOMAS (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Diplomas") {
         let optionsSelectDip = `<option value="">Seleccione un participante</option>`;
         estadoApp.participantesLista.forEach(p => {
@@ -686,7 +742,7 @@ function obtenerContenidoSeccion() {
         return htmlDiplomasAdmin;
     }
 
-    // 7. VISTA PARTICIPANTE: "Mis jornadas"
+    // 8. VISTA PARTICIPANTE: "Mis jornadas"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
         let htmlMisJ = `
             <div style="margin-bottom: 2rem;">
@@ -716,7 +772,7 @@ function obtenerContenidoSeccion() {
         return htmlMisJ;
     } 
 
-    // 8. VISTA PARTICIPANTE: "Mis materiales"
+    // 9. VISTA PARTICIPANTE: "Mis materiales"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis materiales") {
         let htmlMisM = `
             <div style="margin-bottom: 2rem;">
@@ -744,7 +800,7 @@ function obtenerContenidoSeccion() {
         return htmlMisM;
     }
 
-    // 9. VISTA PARTICIPANTE: "Mi asistencia"
+    // 10. VISTA PARTICIPANTE: "Mi asistencia"
     else if (!esAdmin && estadoApp.seccionActiva === "Mi asistencia") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misAsistencias = estadoApp.asistenciaLista.filter(a => a.participante === nombreParticipante);
@@ -787,7 +843,7 @@ function obtenerContenidoSeccion() {
         return htmlMiAsis;
     }
 
-    // 10. VISTA PARTICIPANTE: "Mis pagos"
+    // 11. VISTA PARTICIPANTE: "Mis pagos"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis pagos") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misPagos = estadoApp.pagosLista.filter(p => p.participante === nombreParticipante);
@@ -833,7 +889,77 @@ function obtenerContenidoSeccion() {
         return htmlMiPago;
     }
 
-    // 11. VISTA PARTICIPANTE: "Mi diploma"
+    // 12. VISTA PARTICIPANTE: "Test de autoevaluación" (Con botones de imagen Test1.png y Test2.png)
+    else if (!esAdmin && estadoApp.seccionActiva === "Test de autoevaluación") {
+        return `
+            <div style="margin-bottom: 2rem;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Test de Autoevaluación</h2>
+                <p style="color: #555;">Acceda a los cuestionarios interactivos de cada jornada.</p>
+            </div>
+            <div style="display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border-top: 5px solid var(--blue-border);">
+                    <img src="Test1.png" alt="Test 1" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #ddd;">
+                    <h3 style="color: var(--blue-border); margin-bottom: 0.5rem;">Test de Autoevaluación - Jornada 1</h3>
+                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 1.5rem;">Evaluación basada en los fundamentos neurocientíficos y epistemológicos.</p>
+                    <a href="https://drrubenmpereyra-stack.github.io/Test1-aromoterapia/" target="_blank" class="btn-custom" style="text-decoration: none; display: inline-block; padding: 0.75rem 2rem;">Realizar Test 1</a>
+                </div>
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border-top: 5px solid var(--blue-border);">
+                    <img src="Test2.png" alt="Test 2" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #ddd;">
+                    <h3 style="color: var(--blue-border); margin-bottom: 0.5rem;">Test de Autoevaluación - Jornada 2</h3>
+                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 1.5rem;">Evaluación basada en las estrategias clínicas, protocolos y ética.</p>
+                    <a href="https://drrubenmpereyra-stack.github.io/Test-2-aromoterapia/" target="_blank" class="btn-custom" style="text-decoration: none; display: inline-block; padding: 0.75rem 2rem;">Realizar Test 2</a>
+                </div>
+            </div>
+        `;
+    }
+
+    // 13. VISTA PARTICIPANTE: "Mis calificaciones" (Solo muestra los ya tildados/corregidos por administración)
+    else if (!esAdmin && estadoApp.seccionActiva === "Mis calificaciones") {
+        const nombreParticipante = estadoApp.usuarioActual.nombre;
+        const misResultados = estadoApp.resultadosTestsLista.filter(r => 
+            (r.participante || '').trim() === nombreParticipante.trim() && r.corregido === true
+        );
+
+        let htmlMisCalif = `
+            <div style="margin-bottom: 2rem;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Mis Calificaciones y Protocolos</h2>
+                <p style="color: #555;">Evaluaciones auditadas y aprobadas por la dirección.</p>
+            </div>
+            <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        `;
+
+        if (misResultados.length === 0) {
+            htmlMisCalif += `<p style="color: #666;">Aún no registra calificaciones habilitadas por administración.</p>`;
+        } else {
+            htmlMisCalif += `
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--blue-border); color: var(--blue-border);">
+                            <th style="padding: 0.75rem;">Evaluación</th>
+                            <th style="padding: 0.75rem;">Puntaje Obtenido</th>
+                            <th style="padding: 0.75rem;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            misResultados.forEach(item => {
+                htmlMisCalif += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 0.75rem; font-weight: 600;">${item.test}</td>
+                        <td style="padding: 0.75rem; font-weight: bold; color: var(--blue-border);">${item.score} / 100 pts</td>
+                        <td style="padding: 0.75rem; font-weight: bold; color: #2b9348;">
+                            🟢 Aprobado / Corregido
+                        </td>
+                    </tr>
+                `;
+            });
+            htmlMisCalif += `</tbody></table>`;
+        }
+        htmlMisCalif += `</div>`;
+        return htmlMisCalif;
+    }
+
+    // 14. VISTA PARTICIPANTE: "Mi diploma"
     else if (!esAdmin && estadoApp.seccionActiva === "Mi diploma") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const miDiploma = estadoApp.diplomasLista.find(d => d.participante === nombreParticipante);
@@ -902,7 +1028,7 @@ function renderDashboard() {
             <button class="btn-custom" data-seccion="Participantes">Participantes</button>
             <button class="btn-custom" data-seccion="Asistencia">Asistencia</button>
             <button class="btn-custom" data-seccion="Pagos">Pagos</button>
-            <button class="btn-custom" data-seccion="Calificaciones">Calificaciones</button>
+            <button class="btn-custom" data-seccion="Auditoría Evaluativa">Auditoría Evaluativa</button>
             <button class="btn-custom" data-seccion="Diplomas">Diplomas</button>
         `;
     } else {
@@ -1111,6 +1237,23 @@ function configurarEventosDashboard() {
         btn.addEventListener("click", async (e) => {
             const idDoc = e.target.getAttribute("data-id");
             try { await deleteDoc(doc(db, "pagos", idDoc)); await cargarDatosDesdeDB(); render(); } catch (err) { console.error(err); }
+        });
+    });
+
+    // Auditoría Evaluativa (Checkboxes)
+    document.querySelectorAll(".check-auditoria").forEach(chk => {
+        chk.addEventListener("change", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            const nuevoEstado = e.target.checked;
+            try {
+                if (db) {
+                    await updateDoc(doc(db, "resultados_tests", idDoc), { corregido: nuevoEstado });
+                    await cargarDatosDesdeDB();
+                    render();
+                }
+            } catch (err) {
+                console.error("Error al actualizar estado de auditoría:", err);
+            }
         });
     });
 
