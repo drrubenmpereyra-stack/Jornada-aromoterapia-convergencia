@@ -25,6 +25,7 @@ let estadoApp = {
     seccionActiva: "Mis jornadas",
     modoFormularioJornada: false,
     modoFormularioMaterial: false,
+    modoFormularioParticipante: false,
     jornadasLista: [],
     materialesLista: [],
     participantesLista: [],
@@ -89,7 +90,6 @@ function configurarEventosLogin() {
         let usuarioEncontrado = null;
         let accesoRestringido = false;
 
-        // INGRESO DIRECTO POR CÓDIGO (USUARIO DE PRUEBA)
         if (uInput === "P1" && pInput === "XX") {
             usuarioEncontrado = { 
                 id: "test-user-id", 
@@ -270,7 +270,7 @@ function obtenerContenidoSeccion() {
                             <input type="text" id="jNombre" required placeholder="Ej: Jornada 1..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
-                            <label>Imagen de la Jornada (Archivo en repo)</label>
+                            <label>Imagen de la Jornada</label>
                             <input type="text" id="jImagen" required placeholder="Ej: Jornada1.jpg" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
@@ -384,12 +384,77 @@ function obtenerContenidoSeccion() {
     }
 
     else if (esAdmin && estadoApp.seccionActiva === "Participantes") {
-        return `
-            <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center;">
-                <h2 style="color: var(--blue-border); margin-bottom: 1rem;">Gestión de Participantes deshabilitada</h2>
-                <p style="color: #666;">Sección eliminada del sistema a petición de la administración.</p>
-            </div>
-        `;
+        if (estadoApp.modoFormularioParticipante) {
+            return `
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border: 2px solid var(--blue-border);">
+                    <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Cargar Nuevo Participante</h2>
+                    <form id="formCargarParticipante" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="form-group" style="text-align: left;">
+                            <label>Apellido y Nombres</label>
+                            <input type="text" id="pNombre" required placeholder="Ej: Pérez, Juan..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Usuario Asignado</label>
+                            <input type="text" id="pUsuario" required placeholder="Ej: P2" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Contraseña Asignada</label>
+                            <input type="text" id="pPass" required placeholder="Ej: AB12" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Link de Foto de Perfil</label>
+                            <input type="url" id="pFoto" placeholder="https://..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar Participante</button>
+                            <button type="button" id="btnCancelarParticipante" class="btn-custom" style="flex: 1; padding: 0.75rem; background-color: #6c757d !important;">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        } else {
+            let htmlP = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 style="color: var(--blue-border); margin-bottom: 0.3rem; font-size: 1.6rem;">Gestión de Participantes</h2>
+                        <p style="color: #555;">Control de alumnos inscriptos y credenciales de acceso.</p>
+                    </div>
+                    <button id="btnAbrirFormParticipante" class="btn-custom">➕ Cargar Participante</button>
+                </div>
+                <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            `;
+            if (estadoApp.participantesLista.length === 0) {
+                htmlP += `<p style="color: #666;">No hay participantes cargados en el sistema.</p>`;
+            } else {
+                htmlP += `
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--blue-border); color: var(--blue-border);">
+                                <th style="padding: 0.75rem;">Apellido y Nombres</th>
+                                <th style="padding: 0.75rem;">Usuario</th>
+                                <th style="padding: 0.75rem;">Contraseña</th>
+                                <th style="padding: 0.75rem; text-align: center;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                estadoApp.participantesLista.forEach(item => {
+                    htmlP += `
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 0.75rem; font-weight: 600;">${item.apellidoNombres}</td>
+                            <td style="padding: 0.75rem;">${item.usuarioAsignado}</td>
+                            <td style="padding: 0.75rem; font-family: monospace;">${item.passAsignada}</td>
+                            <td style="padding: 0.75rem; text-align: center;">
+                                <button class="btn-custom btn-eliminar-participante" data-id="${item.id}" style="background-color: #d90429 !important; padding: 0.4rem 0.8rem; font-size: 0.85rem;">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                htmlP += `</tbody></table>`;
+            }
+            htmlP += `</div>`;
+            return htmlP;
+        }
     }
 
     else if (esAdmin && estadoApp.seccionActiva === "Asistencia") {
@@ -823,22 +888,12 @@ function obtenerContenidoSeccion() {
     else if (!esAdmin && estadoApp.seccionActiva === "Test de autoevaluación") {
         return `
             <div style="margin-bottom: 2rem;">
-                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Test de Autoevaluación</h2>
-                <p style="color: #555;">Acceda a los cuestionarios interactivos de cada jornada.</p>
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Test de Autoevaluación - Jornada 1</h2>
+                <p style="color: #555;">Acceso al protocolo evaluativo externo.</p>
             </div>
-            <div style="display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
-                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border-top: 5px solid var(--blue-border);">
-                    <img src="Test1.png" alt="Test 1" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #ddd;">
-                    <h3 style="color: var(--blue-border); margin-bottom: 0.5rem;">Test de Autoevaluación - Jornada 1</h3>
-                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 1.5rem;">Evaluación basada en los fundamentos neurocientíficos y epistemológicos.</p>
-                    <a href="https://drrubenmpereyra-stack.github.io/Test1-aromoterapia/" target="_blank" class="btn-custom" style="text-decoration: none; display: inline-block; padding: 0.75rem 2rem;">Realizar Test 1</a>
-                </div>
-                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border-top: 5px solid var(--blue-border);">
-                    <img src="Test2.png" alt="Test 2" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #ddd;">
-                    <h3 style="color: var(--blue-border); margin-bottom: 0.5rem;">Test de Autoevaluación - Jornada 2</h3>
-                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 1.5rem;">Evaluación basada en las estrategias clínicas, protocolos y ética.</p>
-                    <a href="https://drrubenmpereyra-stack.github.io/Test-2-aromoterapia/" target="_blank" class="btn-custom" style="text-decoration: none; display: inline-block; padding: 0.75rem 2rem;">Realizar Test 2</a>
-                </div>
+            <div style="background: var(--white); padding: 3rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border: 2px solid var(--blue-border);">
+                <p style="font-size: 1.1rem; color: #333; margin-bottom: 1.5rem;">Haga clic en el siguiente botón para abrir el Test oficial en una pestaña independiente:</p>
+                <a href="https://drrubenmpereyra-stack.github.io/Test1-aromoterapia/" target="_blank" class="btn-custom" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-decoration: none; display: inline-block;">Abrir Test 1 en nueva ventana ➔</a>
             </div>
         `;
     }
@@ -946,7 +1001,6 @@ function obtenerContenidoSeccion() {
 
 function renderDashboard() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
-    
     let botonesHTML = "";
 
     if (esAdmin) {
@@ -1008,12 +1062,56 @@ function configurarEventosDashboard() {
                 estadoApp.seccionActiva = "Jornadas";
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.modoFormularioMaterial = false;
+                estadoApp.modoFormularioParticipante = false;
                 render();
             } else {
                 estadoApp.seccionActiva = seccion;
                 estadoApp.modoFormularioJornada = false;
                 estadoApp.modoFormularioMaterial = false;
+                estadoApp.modoFormularioParticipante = false;
                 render();
+            }
+        });
+    });
+
+    const btnAbrirFormP = document.getElementById("btnAbrirFormParticipante");
+    if (btnAbrirFormP) btnAbrirFormP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = true; render(); });
+    
+    const btnCancelarP = document.getElementById("btnCancelarParticipante");
+    if (btnCancelarP) btnCancelarP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = false; render(); });
+    
+    const formCargarP = document.getElementById("formCargarParticipante");
+    if (formCargarP) {
+        formCargarP.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nuevoParticipante = {
+                apellidoNombres: document.getElementById("pNombre").value.trim(),
+                usuarioAsignado: document.getElementById("pUsuario").value.trim(),
+                passAsignada: document.getElementById("pPass").value.trim(),
+                foto: document.getElementById("pFoto").value.trim() || "https://via.placeholder.com/80",
+                restringido: false
+            };
+            try {
+                if (db) await addDoc(collection(db, "usuarios"), nuevoParticipante);
+                estadoApp.modoFormularioParticipante = false;
+                await cargarDatosDesdeDB();
+                render();
+            } catch (error) { 
+                console.error(error); 
+                alert("Error al guardar participante."); 
+            }
+        });
+    }
+
+    document.querySelectorAll(".btn-eliminar-participante").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            try { 
+                await deleteDoc(doc(db, "usuarios", idDoc)); 
+                await cargarDatosDesdeDB(); 
+                render(); 
+            } catch (err) { 
+                console.error(err); 
             }
         });
     });
