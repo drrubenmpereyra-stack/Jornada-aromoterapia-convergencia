@@ -24,6 +24,7 @@ let estadoApp = {
     usuarioActual: null,
     seccionActiva: "Mis jornadas",
     modoFormularioJornada: false,
+    jornadaEditandoId: null, // Controla si estamos editando una jornada específica
     modoFormularioMaterial: false,
     modoFormularioParticipante: false,
     jornadasLista: [],
@@ -139,7 +140,6 @@ function configurarEventosLogin() {
                 estadoApp.seccionActiva = "Jornadas";
             }
             
-            // Guardar nombre en localStorage para uso de los test externos
             localStorage.setItem("participanteAromaterapia", usuarioEncontrado.nombre);
 
             await cargarDatosDesdeDB();
@@ -264,29 +264,34 @@ function obtenerContenidoSeccion() {
 
     if (esAdmin && estadoApp.seccionActiva === "Jornadas") {
         if (estadoApp.modoFormularioJornada) {
+            let jornadaAEditar = null;
+            if (estadoApp.jornadaEditandoId) {
+                jornadaAEditar = estadoApp.jornadasLista.find(j => j.id === estadoApp.jornadaEditandoId);
+            }
+
             return `
                 <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border: 2px solid var(--blue-border);">
-                    <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">Cargar Nueva Jornada</h2>
+                    <h2 style="color: var(--blue-border); margin-bottom: 1.5rem; text-align: center;">${jornadaAEditar ? 'Editar Jornada Académica' : 'Cargar Nueva Jornada'}</h2>
                     <form id="formCargarJornada" style="display: flex; flex-direction: column; gap: 1rem;">
                         <div class="form-group" style="text-align: left;">
                             <label>Nombre de la Jornada</label>
-                            <input type="text" id="jNombre" required placeholder="Ej: Jornada 1..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="jNombre" required value="${jornadaAEditar ? jornadaAEditar.nombre : ''}" placeholder="Ej: Jornada 1..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Imagen de la Jornada</label>
-                            <input type="text" id="jImagen" required placeholder="Ej: Jornada1.jpg" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="text" id="jImagen" required value="${jornadaAEditar ? jornadaAEditar.imagen : ''}" placeholder="Ej: Jornada1.jpg" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Fecha de la Jornada</label>
-                            <input type="date" id="jFecha" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="date" id="jFecha" required value="${jornadaAEditar ? jornadaAEditar.fecha : ''}" style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Link del MEET</label>
-                            <input type="url" id="jMeet" required placeholder="https://meet.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="url" id="jMeet" required value="${jornadaAEditar ? jornadaAEditar.meet : ''}" placeholder="https://meet.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div class="form-group" style="text-align: left;">
                             <label>Link de la clase grabada</label>
-                            <input type="url" id="jGrabacion" required placeholder="https://drive.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
+                            <input type="url" id="jGrabacion" required value="${jornadaAEditar ? jornadaAEditar.grabacion : ''}" placeholder="https://drive.google.com/..." style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px;">
                         </div>
                         <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                             <button type="submit" class="btn-custom" style="flex: 1; padding: 0.75rem;">Guardar datos</button>
@@ -320,6 +325,10 @@ function obtenerContenidoSeccion() {
                                     <a href="${j.meet}" target="_blank" style="color: #1d3557; font-weight: bold;">🔗 MEET</a>
                                     <a href="${j.grabacion}" target="_blank" style="color: #1d3557; font-weight: bold;">🎥 Grabación</a>
                                 </div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn-custom btn-editar-jornada" data-id="${j.id}" style="background-color: #457b9d !important; padding: 0.4rem 0.8rem; font-size: 0.85rem;">✏️ Editar</button>
+                                <button class="btn-custom btn-eliminar-jornada" data-id="${j.id}" style="background-color: #d90429 !important; padding: 0.4rem 0.8rem; font-size: 0.85rem;">🗑️ Eliminar</button>
                             </div>
                         </div>
                     `;
@@ -1074,12 +1083,14 @@ function configurarEventosDashboard() {
                 estadoApp.pantalla = "login";
                 estadoApp.seccionActiva = "Jornadas";
                 estadoApp.modoFormularioJornada = false;
+                estadoApp.jornadaEditandoId = null;
                 estadoApp.modoFormularioMaterial = false;
                 estadoApp.modoFormularioParticipante = false;
                 render();
             } else {
                 estadoApp.seccionActiva = seccion;
                 estadoApp.modoFormularioJornada = false;
+                estadoApp.jornadaEditandoId = null;
                 estadoApp.modoFormularioMaterial = false;
                 estadoApp.modoFormularioParticipante = false;
                 render();
@@ -1130,14 +1141,54 @@ function configurarEventosDashboard() {
     });
 
     const btnAbrirFormJ = document.getElementById("btnAbrirFormJornada");
-    if (btnAbrirFormJ) btnAbrirFormJ.addEventListener("click", () => { estadoApp.modoFormularioJornada = true; render(); });
+    if (btnAbrirFormJ) {
+        btnAbrirFormJ.addEventListener("click", () => { 
+            estadoApp.modoFormularioJornada = true; 
+            estadoApp.jornadaEditandoId = null; 
+            render(); 
+        });
+    }
+
     const btnCancelarJ = document.getElementById("btnCancelarJornada");
-    if (btnCancelarJ) btnCancelarJ.addEventListener("click", () => { estadoApp.modoFormularioJornada = false; render(); });
+    if (btnCancelarJ) {
+        btnCancelarJ.addEventListener("click", () => { 
+            estadoApp.modoFormularioJornada = false; 
+            estadoApp.jornadaEditandoId = null; 
+            render(); 
+        });
+    }
+
+    // Configurar botones de editar jornada
+    document.querySelectorAll(".btn-editar-jornada").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            estadoApp.modoFormularioJornada = true;
+            estadoApp.jornadaEditandoId = idDoc;
+            render();
+        });
+    });
+
+    // Configurar botones de eliminar jornada
+    document.querySelectorAll(".btn-eliminar-jornada").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            if (confirm("¿Está seguro de que desea eliminar esta jornada?")) {
+                try {
+                    await deleteDoc(doc(db, "jornadas", idDoc));
+                    await cargarDatosDesdeDB();
+                    render();
+                } catch (err) {
+                    console.error("Error al eliminar jornada:", err);
+                }
+            }
+        });
+    });
+
     const formCargarJ = document.getElementById("formCargarJornada");
     if (formCargarJ) {
         formCargarJ.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const nuevaJornada = {
+            const datosJornada = {
                 nombre: document.getElementById("jNombre").value.trim(),
                 imagen: document.getElementById("jImagen").value.trim(),
                 fecha: document.getElementById("jFecha").value,
@@ -1145,11 +1196,23 @@ function configurarEventosDashboard() {
                 grabacion: document.getElementById("jGrabacion").value.trim()
             };
             try {
-                if (db) await addDoc(collection(db, "jornadas"), nuevaJornada);
+                if (db) {
+                    if (estadoApp.jornadaEditandoId) {
+                        // Actualizar jornada existente
+                        await updateDoc(doc(db, "jornadas", estadoApp.jornadaEditandoId), datosJornada);
+                    } else {
+                        // Crear nueva jornada
+                        await addDoc(collection(db, "jornadas"), datosJornada);
+                    }
+                }
                 estadoApp.modoFormularioJornada = false;
+                estadoApp.jornadaEditandoId = null;
                 await cargarDatosDesdeDB();
                 render();
-            } catch (error) { console.error(error); alert("Error al guardar jornada."); }
+            } catch (error) { 
+                console.error(error); 
+                alert("Error al guardar jornada."); 
+            }
         });
     }
 
