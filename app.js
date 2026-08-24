@@ -14,6 +14,7 @@ const firebaseConfig = {
 let db = null;
 try {
     const app = initializeApp(firebaseConfig);
+    // Inicialización corregida para evitar el error de base de datos no encontrada
     db = getFirestore(app);
 } catch (err) {
     console.error("Error al conectar con Firebase:", err);
@@ -252,7 +253,6 @@ async function cargarDatosDesdeDB() {
 function obtenerContenidoSeccion() {
     const esAdmin = estadoApp.usuarioActual.role === "admin";
 
-    // 1. JORNADAS (Admin)
     if (esAdmin && estadoApp.seccionActiva === "Jornadas") {
         if (estadoApp.modoFormularioJornada) {
             return `
@@ -321,7 +321,6 @@ function obtenerContenidoSeccion() {
         }
     } 
 
-    // 2. MATERIALES (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Materiales") {
         if (estadoApp.modoFormularioMaterial) {
             return `
@@ -378,7 +377,6 @@ function obtenerContenidoSeccion() {
         }
     }
 
-    // 3. PARTICIPANTES (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Participantes") {
         if (estadoApp.modoFormularioParticipante) {
             return `
@@ -453,7 +451,6 @@ function obtenerContenidoSeccion() {
         }
     }
 
-    // 4. ASISTENCIA (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Asistencia") {
         let optionsSelect = `<option value="">Seleccione un participante</option>`;
         estadoApp.participantesLista.forEach(p => {
@@ -529,7 +526,6 @@ function obtenerContenidoSeccion() {
         return htmlAsistenciaAdmin;
     }
 
-    // 5. PAGOS (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Pagos") {
         let optionsSelectP = `<option value="">Seleccione un participante</option>`;
         estadoApp.participantesLista.forEach(p => {
@@ -620,7 +616,6 @@ function obtenerContenidoSeccion() {
         return htmlPagosAdmin;
     }
 
-    // 6. AUDITORÍA EVALUATIVA (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Auditoría Evaluativa") {
         let htmlAudit = `
             <div style="margin-bottom: 2rem;">
@@ -670,7 +665,6 @@ function obtenerContenidoSeccion() {
         return htmlAudit;
     }
 
-    // 7. DIPLOMAS (Admin)
     else if (esAdmin && estadoApp.seccionActiva === "Diplomas") {
         let optionsSelectDip = `<option value="">Seleccione un participante</option>`;
         estadoApp.participantesLista.forEach(p => {
@@ -742,7 +736,6 @@ function obtenerContenidoSeccion() {
         return htmlDiplomasAdmin;
     }
 
-    // 8. VISTA PARTICIPANTE: "Mis jornadas"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
         let htmlMisJ = `
             <div style="margin-bottom: 2rem;">
@@ -772,7 +765,6 @@ function obtenerContenidoSeccion() {
         return htmlMisJ;
     } 
 
-    // 9. VISTA PARTICIPANTE: "Mis materiales"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis materiales") {
         let htmlMisM = `
             <div style="margin-bottom: 2rem;">
@@ -800,7 +792,6 @@ function obtenerContenidoSeccion() {
         return htmlMisM;
     }
 
-    // 10. VISTA PARTICIPANTE: "Mi asistencia"
     else if (!esAdmin && estadoApp.seccionActiva === "Mi asistencia") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misAsistencias = estadoApp.asistenciaLista.filter(a => a.participante === nombreParticipante);
@@ -843,7 +834,6 @@ function obtenerContenidoSeccion() {
         return htmlMiAsis;
     }
 
-    // 11. VISTA PARTICIPANTE: "Mis pagos"
     else if (!esAdmin && estadoApp.seccionActiva === "Mis pagos") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misPagos = estadoApp.pagosLista.filter(p => p.participante === nombreParticipante);
@@ -889,7 +879,6 @@ function obtenerContenidoSeccion() {
         return htmlMiPago;
     }
 
-    // 12. VISTA PARTICIPANTE: "Test de autoevaluación" (Con botones de imagen Test1.png y Test2.png)
     else if (!esAdmin && estadoApp.seccionActiva === "Test de autoevaluación") {
         return `
             <div style="margin-bottom: 2rem;">
@@ -913,7 +902,6 @@ function obtenerContenidoSeccion() {
         `;
     }
 
-    // 13. VISTA PARTICIPANTE: "Mis calificaciones" (Solo muestra los ya tildados/corregidos por administración)
     else if (!esAdmin && estadoApp.seccionActiva === "Mis calificaciones") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misResultados = estadoApp.resultadosTestsLista.filter(r => 
@@ -959,7 +947,6 @@ function obtenerContenidoSeccion() {
         return htmlMisCalif;
     }
 
-    // 14. VISTA PARTICIPANTE: "Mi diploma"
     else if (!esAdmin && estadoApp.seccionActiva === "Mi diploma") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const miDiploma = estadoApp.diplomasLista.find(d => d.participante === nombreParticipante);
@@ -1092,7 +1079,6 @@ function configurarEventosDashboard() {
         });
     });
 
-    // Jornadas
     const btnAbrirFormJ = document.getElementById("btnAbrirFormJornada");
     if (btnAbrirFormJ) btnAbrirFormJ.addEventListener("click", () => { estadoApp.modoFormularioJornada = true; render(); });
     const btnCancelarJ = document.getElementById("btnCancelarJornada");
@@ -1117,7 +1103,6 @@ function configurarEventosDashboard() {
         });
     }
 
-    // Materiales
     const btnAbrirFormM = document.getElementById("btnAbrirFormMaterial");
     if (btnAbrirFormM) btnAbrirFormM.addEventListener("click", () => { estadoApp.modoFormularioMaterial = true; render(); });
     const btnCancelarM = document.getElementById("btnCancelarMaterial");
@@ -1140,7 +1125,6 @@ function configurarEventosDashboard() {
         });
     }
 
-    // Participantes (Con procesamiento correcto del formulario)
     const btnAbrirFormP = document.getElementById("btnAbrirFormParticipante");
     if (btnAbrirFormP) btnAbrirFormP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = true; render(); });
     
@@ -1191,7 +1175,6 @@ function configurarEventosDashboard() {
         });
     });
 
-    // Asistencia
     const formCargarAsis = document.getElementById("formCargarAsistencia");
     if (formCargarAsis) {
         formCargarAsis.addEventListener("submit", async (e) => {
@@ -1217,7 +1200,6 @@ function configurarEventosDashboard() {
         });
     });
 
-    // Pagos
     const formCargarPago = document.getElementById("formCargarPago");
     if (formCargarPago) {
         formCargarPago.addEventListener("submit", async (e) => {
@@ -1245,7 +1227,6 @@ function configurarEventosDashboard() {
         });
     });
 
-    // Auditoría Evaluativa (Checkboxes)
     document.querySelectorAll(".check-auditoria").forEach(chk => {
         chk.addEventListener("change", async (e) => {
             const idDoc = e.target.getAttribute("data-id");
@@ -1262,7 +1243,6 @@ function configurarEventosDashboard() {
         });
     });
 
-    // Diplomas
     const formCargarDiploma = document.getElementById("formCargarDiploma");
     if (formCargarDiploma) {
         formCargarDiploma.addEventListener("submit", async (e) => {
