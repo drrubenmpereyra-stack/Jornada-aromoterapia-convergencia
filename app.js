@@ -1128,34 +1128,6 @@ function configurarEventosDashboard() {
     
     const btnCancelarP = document.getElementById("btnCancelarParticipante");
     if (btnCancelarP) btnCancelarP.addEventListener("click", () => { estadoApp.modoFormularioParticipante = false; render(); });
-    
-    const formCargarP = document.getElementById("formCargarParticipante");
-    if (formCargarP) {
-        formCargarP.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const nuevoParticipante = {
-                foto: document.getElementById("pFoto").value.trim(),
-                apellidoNombres: document.getElementById("pNombre").value.trim(),
-                dni: document.getElementById("pDni").value.trim(),
-                usuarioAsignado: document.getElementById("pUsuario").value.trim(),
-                passAsignada: document.getElementById("pPass").value.trim(),
-                restringido: false
-            };
-            try {
-                if (!db) {
-                    alert("Error: La base de datos no está conectada.");
-                    return;
-                }
-                await addDoc(collection(db, "usuarios"), nuevoParticipante);
-                estadoApp.modoFormularioParticipante = false;
-                await cargarDatosDesdeDB();
-                render();
-            } catch (error) { 
-                console.error("Error detallado al registrar participante:", error); 
-                alert("Error al registrar participante: " + error.message); 
-            }
-        });
-    }
 
     document.querySelectorAll(".btn-eliminar-participante").forEach(btn => {
         btn.addEventListener("click", async (e) => {
@@ -1270,5 +1242,36 @@ function configurarEventosDashboard() {
         });
     });
 }
+
+// ESCUCHADOR GLOBAL DE SUBMIT (Solución definitiva para formularios dinámicos)
+document.addEventListener("submit", async (e) => {
+    if (e.target && e.target.id === "formCargarParticipante") {
+        e.preventDefault();
+        
+        const nuevoParticipante = {
+            foto: document.getElementById("pFoto").value.trim(),
+            apellidoNombres: document.getElementById("pNombre").value.trim(),
+            dni: document.getElementById("pDni").value.trim(),
+            usuarioAsignado: document.getElementById("pUsuario").value.trim(),
+            passAsignada: document.getElementById("pPass").value.trim(),
+            restringido: false
+        };
+
+        try {
+            if (!db) {
+                alert("Error crítico: La base de datos no está inicializada.");
+                return;
+            }
+            await addDoc(collection(db, "usuarios"), nuevoParticipante);
+            estadoApp.modoFormularioParticipante = false;
+            await cargarDatosDesdeDB();
+            render();
+            alert("¡Participante cargado con éxito!");
+        } catch (error) {
+            console.error("Error al registrar participante en Firestore:", error);
+            alert("Error al registrar participante: " + error.message);
+        }
+    }
+});
 
 window.addEventListener("DOMContentLoaded", render);
