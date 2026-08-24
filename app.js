@@ -648,7 +648,7 @@ function obtenerContenidoSeccion() {
         let htmlAudit = `
             <div style="margin-bottom: 2rem;">
                 <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Auditoría Evaluativa de Test y Talleres</h2>
-                <p style="color: #555;">Supervisión, marcado y habilitación de calificaciones para los participantes.</p>
+                <p style="color: #555;">Supervisión, marcado, habilitación de calificaciones y gestión de protocolos.</p>
             </div>
             <div style="background: var(--white); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
         `;
@@ -665,6 +665,7 @@ function obtenerContenidoSeccion() {
                             <th style="padding: 0.75rem;">Puntaje</th>
                             <th style="padding: 0.75rem; text-align: center;">Tilde Auditoría</th>
                             <th style="padding: 0.75rem; text-align: center;">Estado Administrador</th>
+                            <th style="padding: 0.75rem; text-align: center;">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -683,6 +684,9 @@ function obtenerContenidoSeccion() {
                             <span style="background: ${corregido ? '#d8f3dc' : '#ffe5d9'}; color: ${corregido ? '#2b9348' : '#d90429'}; padding: 0.3rem 0.8rem; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
                                 ${corregido ? 'Corregido' : 'Pendiente de Auditoría'}
                             </span>
+                        </td>
+                        <td style="padding: 0.75rem; text-align: center;">
+                            <button class="btn-custom btn-eliminar-resultado" data-id="${item.id}" style="background-color: #d90429 !important; padding: 0.4rem 0.8rem; font-size: 0.85rem;">🗑️ Eliminar</button>
                         </td>
                     </tr>
                 `;
@@ -1383,6 +1387,23 @@ function configurarEventosDashboard() {
                 }
             } catch (err) {
                 console.error("Error al actualizar estado de auditoría:", err);
+            }
+        });
+    });
+
+    // EVENTO ELIMINAR RESULTADO DE AUDITORÍA (TEST O TALLER)
+    document.querySelectorAll(".btn-eliminar-resultado").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const idDoc = e.target.getAttribute("data-id");
+            if (confirm("¿Está seguro de que desea eliminar este protocolo de evaluación?")) {
+                try {
+                    await deleteDoc(doc(db, "resultados_tests", idDoc));
+                    await cargarDatosDesdeDB();
+                    render();
+                } catch (err) {
+                    console.error("Error al eliminar el resultado evaluativo:", err);
+                    alert("No se pudo eliminar el registro.");
+                }
             }
         });
     });
