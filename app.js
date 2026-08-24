@@ -930,6 +930,29 @@ function obtenerContenidoSeccion() {
         `;
     }
 
+    else if (!esAdmin && estadoApp.seccionActiva === "Talleres") {
+        return `
+            <div style="margin-bottom: 2rem;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Talleres Prácticos de Análisis Clínico</h2>
+                <p style="color: #555;">Acceso a los cuestionarios de resolución de casos clínicos y aplicación didáctica.</p>
+            </div>
+            <div style="display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border: 2px solid var(--blue-border); display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                    <img src="Taller1.jpg" alt="Taller 1" style="width: 100%; max-width: 320px; height: 180px; object-fit: cover; border-radius: 6px; border: 2px solid var(--blue-border);" onerror="this.src='https://via.placeholder.com/320x180?text=Taller+1'">
+                    <h3 style="color: var(--blue-border); font-size: 1.2rem;">Taller Práctico 1</h3>
+                    <p style="font-size: 0.95rem; color: #333;">Análisis de caso clínico: "El bloqueo de la tormenta" y neurobiología del olfato.</p>
+                    <a href="https://drrubenmpereyra-stack.github.io/Taller1-aromoterapia/" target="_blank" class="btn-custom" style="padding: 0.75rem 1.5rem; font-size: 1rem; text-decoration: none; display: inline-block; margin-top: auto;">Acceder al Taller 1 ➔</a>
+                </div>
+                <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border: 2px solid var(--blue-border); display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                    <img src="Taller2.jpg" alt="Taller 2" style="width: 100%; max-width: 320px; height: 180px; object-fit: cover; border-radius: 6px; border: 2px solid var(--blue-border);" onerror="this.src='https://via.placeholder.com/320x180?text=Taller+2'">
+                    <h3 style="color: var(--blue-border); font-size: 1.2rem;">Taller Práctico 2</h3>
+                    <p style="font-size: 0.95rem; color: #333;">Análisis de caso clínico: "El discurso escindido y el vacío" y protocolos de vaporización.</p>
+                    <a href="https://drrubenmpereyra-stack.github.io/Taller-2-aromoerapia/" target="_blank" class="btn-custom" style="padding: 0.75rem 1.5rem; font-size: 1rem; text-decoration: none; display: inline-block; margin-top: auto;">Acceder al Taller 2 ➔</a>
+                </div>
+            </div>
+        `;
+    }
+
     else if (!esAdmin && estadoApp.seccionActiva === "Mis calificaciones") {
         const nombreParticipante = estadoApp.usuarioActual.nombre;
         const misResultados = estadoApp.resultadosTestsLista.filter(r => 
