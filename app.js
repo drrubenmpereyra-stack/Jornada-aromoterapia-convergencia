@@ -139,6 +139,9 @@ function configurarEventosLogin() {
                 estadoApp.seccionActiva = "Jornadas";
             }
             
+            // Guardar nombre en localStorage para uso de los test externos
+            localStorage.setItem("participanteAromaterapia", usuarioEncontrado.nombre);
+
             await cargarDatosDesdeDB();
             render();
             reproducirAudioIntro();
@@ -902,7 +905,7 @@ function obtenerContenidoSeccion() {
                     <img src="Jornada2.jpg" alt="Jornada 2" style="width: 100%; max-width: 320px; height: 180px; object-fit: cover; border-radius: 6px; border: 2px solid var(--blue-border);" onerror="this.src='https://via.placeholder.com/320x180?text=Jornada+2'">
                     <h3 style="color: var(--blue-border); font-size: 1.2rem;">Test de Autoevaluación - Jornada 2</h3>
                     <p style="font-size: 0.95rem; color: #333;">Haga clic en el siguiente botón para abrir el Test oficial en una pestaña independiente:</p>
-                    <a href="#" target="_blank" class="btn-custom" style="padding: 0.75rem 1.5rem; font-size: 1rem; text-decoration: none; display: inline-block; margin-top: auto; opacity: 0.8;">Abrir Test 2 en nueva ventana ➔</a>
+                    <a href="https://drrubenmpereyra-stack.github.io/Test-2-aromoterapia/" target="_blank" class="btn-custom" style="padding: 0.75rem 1.5rem; font-size: 1rem; text-decoration: none; display: inline-block; margin-top: auto;">Abrir Test 2 en nueva ventana ➔</a>
                 </div>
             </div>
         `;
