@@ -768,6 +768,23 @@ function obtenerContenidoSeccion() {
         return htmlDiplomasAdmin;
     }
 
+    else if (estadoApp.seccionActiva === "Compendio de aceites esenciales") {
+        return `
+            <div style="margin-bottom: 2rem; text-align: center;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Compendio Clínico de Aceites Esenciales</h2>
+                <p style="color: #555;">Recopilación farmacológica, neurobiológica y psicoterapéutica.</p>
+            </div>
+            <div style="display: flex; justify-content: center;">
+                <div style="background: var(--white); padding: 2.5rem; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); text-align: center; border: 2px solid var(--blue-border); display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 450px; width: 100%;">
+                    <img src="Compendio.jpg" alt="Compendio de Aceites Esenciales" style="width: 100%; max-width: 380px; height: 220px; object-fit: cover; border-radius: 8px; border: 3px solid var(--blue-border);" onerror="this.src='https://via.placeholder.com/380x220?text=Compendio+de+Aceites'">
+                    <h3 style="color: var(--blue-border); font-size: 1.3rem; margin: 0;">Catálogo Interactivo</h3>
+                    <p style="font-size: 0.95rem; color: #444; line-height: 1.5;">Acceda al compendio en línea para consultar fichas técnicas, perfiles químicos y aplicaciones clínicas detalladas.</p>
+                    <a href="https://drrubenmpereyra-stack.github.io/Compendio-aceites-" target="_blank" class="btn-custom" style="padding: 0.85rem 2rem; font-size: 1rem; text-decoration: none; display: inline-block; width: 100%; box-sizing: border-box;">Abrir Compendio ➔</a>
+                </div>
+            </div>
+        `;
+    }
+
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
         let htmlMisJ = `
             <div style="margin-bottom: 2rem;">
@@ -1071,6 +1088,7 @@ function renderDashboard() {
             <button class="btn-custom" data-seccion="Pagos">Pagos</button>
             <button class="btn-custom" data-seccion="Auditoría Evaluativa">Auditoría Evaluativa</button>
             <button class="btn-custom" data-seccion="Diplomas">Diplomas</button>
+            <button class="btn-custom" data-seccion="Compendio de aceites esenciales">Compendio de aceites esenciales</button>
         `;
     } else {
         botonesHTML += `
@@ -1082,6 +1100,7 @@ function renderDashboard() {
             <button class="btn-custom" data-seccion="Mis calificaciones">Mis calificaciones</button>
             <button class="btn-custom" data-seccion="Mi diploma">Mi diploma</button>
             <button class="btn-custom" data-seccion="Mis talleres">Mis talleres</button>
+            <button class="btn-custom" data-seccion="Compendio de aceites esenciales">Compendio de aceites esenciales</button>
         `;
     }
 
