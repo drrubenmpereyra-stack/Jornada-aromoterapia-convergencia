@@ -796,7 +796,7 @@ function obtenerContenidoSeccion() {
                     <img src="Accesorios.jpg" alt="Accesorios y Sets Esenciales" style="width: 100%; max-width: 380px; height: 220px; object-fit: cover; border-radius: 8px; border: 3px solid var(--blue-border);" onerror="this.src='https://via.placeholder.com/380x220?text=Accesorios+y+Sets'">
                     <h3 style="color: var(--blue-border); font-size: 1.3rem; margin: 0;">Tienda Online</h3>
                     <p style="font-size: 0.95rem; color: #444; line-height: 1.5;">Acceda a la tienda para ver difusores, aceites y realizar sus encargos con pago por transferencia y envío directo.</p>
-                    <a href="https://drrubenmpereyra-stack.github.io/tienda-accesorios-" target="_blank" class="btn-custom" style="padding: 0.85rem 2rem; font-size: 1rem; text-decoration: none; display: inline-block; width: 100%; box-sizing: border-box;">Abrir Tienda Online ➔</a>
+                    <a href="https://drrubenmpereyra-stack.github.io/tienda-accesorios-aromoterapia/" target="_blank" class="btn-custom" style="padding: 0.85rem 2rem; font-size: 1rem; text-decoration: none; display: inline-block; width: 100%; box-sizing: border-box;">Abrir Tienda Online ➔</a>
                 </div>
             </div>
         `;
