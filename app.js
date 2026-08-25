@@ -779,7 +779,7 @@ function obtenerContenidoSeccion() {
                     <img src="Compendio.jpg" alt="Compendio de Aceites Esenciales" style="width: 100%; max-width: 380px; height: 220px; object-fit: cover; border-radius: 8px; border: 3px solid var(--blue-border);" onerror="this.src='https://via.placeholder.com/380x220?text=Compendio+de+Aceites'">
                     <h3 style="color: var(--blue-border); font-size: 1.3rem; margin: 0;">Catálogo Interactivo</h3>
                     <p style="font-size: 0.95rem; color: #444; line-height: 1.5;">Acceda al compendio en línea para consultar fichas técnicas, perfiles químicos y aplicaciones clínicas detalladas.</p>
-                    <a href="https://drrubenmpereyra-stack.github.io/Compendio-aceites-" target="_blank" class="btn-custom" style="padding: 0.85rem 2rem; font-size: 1rem; text-decoration: none; display: inline-block; width: 100%; box-sizing: border-box;">Abrir Compendio ➔</a>
+                    <a href="https://drrubenmpereyra-stack.github.io/Compendio-aceites-escenciales/" target="_blank" class="btn-custom" style="padding: 0.85rem 2rem; font-size: 1rem; text-decoration: none; display: inline-block; width: 100%; box-sizing: border-box;">Abrir Compendio ➔</a>
                 </div>
             </div>
         `;
