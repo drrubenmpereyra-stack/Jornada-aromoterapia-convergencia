@@ -785,6 +785,23 @@ function obtenerContenidoSeccion() {
         `;
     }
 
+    else if (estadoApp.seccionActiva === "Accesorios y Sets Esenciales") {
+        return `
+            <div style="margin-bottom: 2rem; text-align: center;">
+                <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Accesorios y Sets Esenciales</h2>
+                <p style="color: #555;">Equipamiento clínico, difusores ultrasónicos y aceites esenciales de máxima pureza.</p>
+            </div>
+            <div style="display: flex; justify-content: center;">
+                <div style="background: var(--white); padding: 2.5rem; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); text-align: center; border: 2px solid var(--blue-border); display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 450px; width: 100%;">
+                    <img src="Accesorios.jpg" alt="Accesorios y Sets Esenciales" style="width: 100%; max-width: 380px; height: 220px; object-fit: cover; border-radius: 8px; border: 3px solid var(--blue-border);" onerror="this.src='https://via.placeholder.com/380x220?text=Accesorios+y+Sets'">
+                    <h3 style="color: var(--blue-border); font-size: 1.3rem; margin: 0;">Tienda Online</h3>
+                    <p style="font-size: 0.95rem; color: #444; line-height: 1.5;">Acceda a la tienda para ver difusores, aceites y realizar sus encargos con pago por transferencia y envío directo.</p>
+                    <a href="https://drrubenmpereyra-stack.github.io/tienda-accesorios-" target="_blank" class="btn-custom" style="padding: 0.85rem 2rem; font-size: 1rem; text-decoration: none; display: inline-block; width: 100%; box-sizing: border-box;">Abrir Tienda Online ➔</a>
+                </div>
+            </div>
+        `;
+    }
+
     else if (!esAdmin && estadoApp.seccionActiva === "Mis jornadas") {
         let htmlMisJ = `
             <div style="margin-bottom: 2rem;">
@@ -955,7 +972,7 @@ function obtenerContenidoSeccion() {
         return `
             <div style="margin-bottom: 2rem;">
                 <h2 style="color: var(--blue-border); margin-bottom: 0.5rem; font-size: 1.6rem;">Talleres Prácticos de Análisis Clínico</h2>
-                <p style="color: #555;">Acceso a los cuestionarios de resolución de casos clínicos y aplicación didáctica.</p>
+                <p style="color: #555;">Acceso al cuestionario de resolución de casos clínicos y aplicación didáctica.</p>
             </div>
             <div style="display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
                 <div style="background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border: 2px solid var(--blue-border); display: flex; flex-direction: column; align-items: center; gap: 1rem;">
@@ -1089,6 +1106,7 @@ function renderDashboard() {
             <button class="btn-custom" data-seccion="Auditoría Evaluativa">Auditoría Evaluativa</button>
             <button class="btn-custom" data-seccion="Diplomas">Diplomas</button>
             <button class="btn-custom" data-seccion="Compendio de aceites esenciales">Compendio de aceites esenciales</button>
+            <button class="btn-custom" data-seccion="Accesorios y Sets Esenciales">Accesorios y Sets Esenciales</button>
         `;
     } else {
         botonesHTML += `
@@ -1101,6 +1119,7 @@ function renderDashboard() {
             <button class="btn-custom" data-seccion="Mi diploma">Mi diploma</button>
             <button class="btn-custom" data-seccion="Mis talleres">Mis talleres</button>
             <button class="btn-custom" data-seccion="Compendio de aceites esenciales">Compendio de aceites esenciales</button>
+            <button class="btn-custom" data-seccion="Accesorios y Sets Esenciales">Accesorios y Sets Esenciales</button>
         `;
     }
 
@@ -1410,7 +1429,6 @@ function configurarEventosDashboard() {
         });
     });
 
-    // EVENTO ELIMINAR RESULTADO DE AUDITORÍA (TEST O TALLER)
     document.querySelectorAll(".btn-eliminar-resultado").forEach(btn => {
         btn.addEventListener("click", async (e) => {
             const idDoc = e.target.getAttribute("data-id");
